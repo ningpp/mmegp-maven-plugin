@@ -87,6 +87,9 @@ public final class MmeCompileUtil {
         mkdirs(xmlFileDir);
 
         File[] javaFiles = new File(modelFileDir).listFiles();
+        if (javaFiles == null) {
+            return;
+        }
         List<org.mybatis.generator.api.dom.java.CompilationUnit> tlcList = new ArrayList<>();
         List<GeneratedXmlFile> generatedXmlFiles = new ArrayList<>();
         List<GeneratedJavaFile> generatedJavaFiles = new ArrayList<>();

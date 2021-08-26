@@ -27,11 +27,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.ibatis.type.JdbcType;
@@ -64,6 +66,8 @@ import me.ningpp.mmegp.annotations.Generated;
 public final class MyBatisGeneratorUtil {
 
     private static final Map<Class<?>, JdbcType> JDBC_TYPE_MAPPING = new HashMap<>();
+
+    private static final Set<String> EXCLUDE_IMPORTS = new HashSet<>();
 
     static {
         JDBC_TYPE_MAPPING.put(Boolean.class, JdbcType.BOOLEAN);
@@ -103,6 +107,10 @@ public final class MyBatisGeneratorUtil {
         JDBC_TYPE_MAPPING.put(LocalTime.class, JdbcType.TIME);
         JDBC_TYPE_MAPPING.put(LocalDate.class, JdbcType.TIMESTAMP);
         JDBC_TYPE_MAPPING.put(LocalDateTime.class, JdbcType.TIMESTAMP);
+
+        EXCLUDE_IMPORTS.add("me.ningpp.mmegp.annotations.Generated");
+        EXCLUDE_IMPORTS.add("me.ningpp.mmegp.annotations.GeneratedColumn");
+        EXCLUDE_IMPORTS.add("org.apache.ibatis.type.JdbcType");
     }
 
     private MyBatisGeneratorUtil() {
@@ -177,7 +185,12 @@ public final class MyBatisGeneratorUtil {
             return null;
         }
         TopLevelClass tlc = buildCompilationUnit(introspectedTable, modelDeclaration);
-        compilationUnit.getImports().forEach(importDeclaration -> tlc.addImportedType(importDeclaration.getName().asString()));
+        compilationUnit.getImports().forEach(importDeclaration -> {
+            String name = importDeclaration.getName().asString();
+            if (!EXCLUDE_IMPORTS.contains(name)) {
+                tlc.addImportedType(name);
+            }
+        });
         return Map.entry(introspectedTable, tlc);
     }
 
