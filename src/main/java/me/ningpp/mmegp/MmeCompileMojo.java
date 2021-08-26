@@ -89,6 +89,12 @@ public class MmeCompileMojo extends AbstractMojo {
     @Parameter( required = true, property = "mapperPackageName" )
     private String mapperPackageName;
 
+    /**
+     * This is MBG javaClientGeneratorConfiguration.configurationType
+     */
+    @Parameter( required = false, property = "javaClientGeneratorConfigurationType" )
+    private String javaClientGeneratorConfigurationType;
+
     @Parameter( required = false, property = "mapperExtGeneratorPluginClassName" )
     private String mapperExtGeneratorPluginClassName;
 
@@ -149,7 +155,7 @@ public class MmeCompileMojo extends AbstractMojo {
             context.setSqlMapGeneratorConfiguration(sqlMapGeneratorConfiguration);
 
             JavaClientGeneratorConfiguration javaClientGeneratorCfg = new JavaClientGeneratorConfiguration();
-            javaClientGeneratorCfg.setConfigurationType("XMLMAPPER");
+            javaClientGeneratorCfg.setConfigurationType(javaClientGeneratorConfigurationType);
             javaClientGeneratorCfg.setTargetPackage(mapperPackageName);
             context.setJavaClientGeneratorConfiguration(javaClientGeneratorCfg);
 

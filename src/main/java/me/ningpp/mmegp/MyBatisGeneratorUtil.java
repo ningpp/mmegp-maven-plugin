@@ -53,7 +53,6 @@ import org.mybatis.generator.config.GeneratedKey;
 import org.mybatis.generator.config.TableConfiguration;
 import org.mybatis.generator.internal.NullProgressCallback;
 import org.mybatis.generator.internal.ObjectFactory;
-import org.mybatis.generator.internal.rules.FlatModelRules;
 
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -127,7 +126,6 @@ public final class MyBatisGeneratorUtil {
         TableConfiguration tableConfiguration = new TableConfiguration(context);
         tableConfiguration.setDomainObjectName(domainObjectName);
         introspectedTable.setTableConfiguration(tableConfiguration);
-        introspectedTable.setRules(new FlatModelRules(introspectedTable));
         introspectedTable.setExampleType(modelDeclaration.getFullyQualifiedName().get() + "Example");
         introspectedTable.setMyBatis3JavaMapperType(mapperPackageName + "." + domainObjectName + "Mapper");
         List<FieldDeclaration> fields = modelDeclaration.getFields();
@@ -150,6 +148,8 @@ public final class MyBatisGeneratorUtil {
             return null;
         }
         introspectedTable.initialize();
+        //必须在initialize方法之后，否则rules不起作用
+        introspectedTable.setRules(new MmegpFlatModelRules(introspectedTable));
         introspectedTable.calculateGenerators(Collections.emptyList(), new NullProgressCallback());
         return introspectedTable;
     }

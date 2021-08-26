@@ -25,13 +25,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.GeneratedXmlFile;
 import org.mybatis.generator.api.IntrospectedTable;
 import org.mybatis.generator.api.Plugin;
 import org.mybatis.generator.api.dom.DefaultJavaFormatter;
-import org.mybatis.generator.api.dom.java.Interface;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.Context;
 
@@ -59,13 +59,6 @@ public final class MmeCompileUtil {
                 throw new IOException("mkdirs fail! dir = " + dir);
             }
         }
-    }
-
-    private static Interface buildMapperInterface(Context context, IntrospectedTable introspectedTable) {
-        MmeJavaMapperGenerator javaMapperGenerator = new MmeJavaMapperGenerator("", false);
-        javaMapperGenerator.setContext(context);
-        javaMapperGenerator.setIntrospectedTable(introspectedTable);
-        return (Interface) javaMapperGenerator.getCompilationUnits().get(0);
     }
 
     private static Entry<IntrospectedTable, TopLevelClass> buildExampleClass(Context context, 
@@ -96,6 +89,7 @@ public final class MmeCompileUtil {
         File[] javaFiles = new File(modelFileDir).listFiles();
         List<org.mybatis.generator.api.dom.java.CompilationUnit> tlcList = new ArrayList<>();
         List<GeneratedXmlFile> generatedXmlFiles = new ArrayList<>();
+        List<GeneratedJavaFile> generatedJavaFiles = new ArrayList<>();
         List<GeneratedJavaFile> generatedMapperExtJavaFiles = new ArrayList<>();
         for (File file : javaFiles) {
             Entry<IntrospectedTable, TopLevelClass> exampleClassEntry = buildExampleClass(context, modelPackageName, mapperPackageName, file);
@@ -103,10 +97,12 @@ public final class MmeCompileUtil {
                 tlcList.add(exampleClassEntry.getValue());
 
                 IntrospectedTable introspectedTable = exampleClassEntry.getKey();
-                Interface mapperClass = buildMapperInterface(context, introspectedTable);
-                if (mapperClass != null) {
-                    tlcList.add(mapperClass);
-                }
+
+                //需要过滤掉model文件
+                generatedJavaFiles.addAll(introspectedTable.getGeneratedJavaFiles().stream()
+                        .filter(gjf -> !file.getName().equals(gjf.getFileName()))
+                    .collect(Collectors.toList()));
+                generatedXmlFiles.addAll(introspectedTable.getGeneratedXmlFiles());
 
                 if (mapperExtGeneratorPlugin != null) {
                     generatedMapperExtJavaFiles.addAll(mapperExtGeneratorPlugin.contextGenerateAdditionalJavaFiles(introspectedTable));
@@ -114,9 +110,14 @@ public final class MmeCompileUtil {
                 if (mapperExtXmlGeneratorPlugin != null) {
                     generatedXmlFiles.addAll(mapperExtXmlGeneratorPlugin.contextGenerateAdditionalXmlFiles(introspectedTable));
                 }
-
-                generatedXmlFiles.addAll(introspectedTable.getGeneratedXmlFiles());
             }
+        }
+
+        for (GeneratedJavaFile generatedJavaFile : generatedJavaFiles) {
+            String file = mapperFileDir + File.separator + generatedJavaFile.getFileName();
+            new File(file).delete();
+            Files.writeString(Paths.get(file), generatedJavaFile.getFormattedContent(), 
+                    StandardCharsets.UTF_8, StandardOpenOption.CREATE);
         }
 
         for (GeneratedXmlFile generatedXmlFile : generatedXmlFiles) {
