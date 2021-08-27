@@ -14,19 +14,5 @@
                 </execute>
             </action>
         </pluginExecution>
-        <pluginExecution>
-            <pluginExecutionFilter>
-                <goals>
-                    <goal>attach-artifact</goal>
-                    <goal>remove-project-artifact</goal>
-                </goals>
-            </pluginExecutionFilter>
-            <action>
-                <execute>
-                    <runOnIncremental>false</runOnIncremental>
-                    <runOnConfiguration>false</runOnConfiguration>
-                </execute>
-            </action>
-        </pluginExecution>
     </pluginExecutions>
 </lifecycleMappingMetadata>

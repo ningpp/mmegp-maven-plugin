@@ -97,7 +97,9 @@ public final class MmeCompileUtil {
         for (File file : javaFiles) {
             Entry<IntrospectedTable, TopLevelClass> exampleClassEntry = buildExampleClass(context, modelPackageName, mapperPackageName, file);
             if (exampleClassEntry != null) {
-                tlcList.add(exampleClassEntry.getValue());
+                if (exampleClassEntry.getValue() != null) {
+                    tlcList.add(exampleClassEntry.getValue());
+                }
 
                 IntrospectedTable introspectedTable = exampleClassEntry.getKey();
 
