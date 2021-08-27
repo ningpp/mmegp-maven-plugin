@@ -62,16 +62,6 @@ public class MmeCompileMojo extends AbstractMojo {
     private File outputDirectory;
 
     /**
-     * This is the root directory into which the {@code .xml} will be created.
-     */
-    @Parameter(
-            required = false,
-            property = "xmlRootDirectory",
-            defaultValue = "${project.build.directory}/generated-sources/mme/resources"
-    )
-    private File xmlRootDirectory;
-
-    /**
      * This is the directory into which the {@code .xml} will be created.
      */
     @Parameter(required = false, property = "xmlOutputDirectory")
@@ -132,10 +122,10 @@ public class MmeCompileMojo extends AbstractMojo {
                 mapperPackageName.replace('.', File.separatorChar) + File.separator;
         String xmlFileDir;
         if (StringUtils.isEmpty(xmlOutputDirectory)) {
-            xmlFileDir = xmlRootDirectory.getAbsolutePath() + File.separator + 
+            xmlFileDir = outputDirectory.getAbsolutePath() + File.separator + 
                     mapperPackageName.replace('.', File.separatorChar) + File.separator;
         } else {
-            xmlFileDir = xmlRootDirectory.getAbsolutePath() + File.separator + 
+            xmlFileDir = outputDirectory.getAbsolutePath() + File.separator + 
                     xmlOutputDirectory + File.separator;
         }
 
@@ -196,7 +186,7 @@ public class MmeCompileMojo extends AbstractMojo {
         }
 
         projectHelper.addResource(project, outputDirectory.getAbsolutePath(), 
-                Arrays.asList("**/*.java"), Collections.emptyList());
+                Arrays.asList("**/*.xml"), Collections.emptyList());
         project.addCompileSourceRoot(outputDirectory.getAbsolutePath());
         buildContext.refresh(outputDirectory);
     }
