@@ -34,6 +34,8 @@ import org.mybatis.generator.api.Plugin;
 import org.mybatis.generator.api.dom.DefaultJavaFormatter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.Context;
+import org.mybatis.generator.exception.ShellException;
+import org.mybatis.generator.internal.DefaultShellCallback;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseResult;
@@ -80,8 +82,7 @@ public final class MmeCompileUtil {
             String modelPackageName, String modelFileDir, String exampleFileDir, 
             String mapperPackageName, String mapperFileDir, 
             String xmlFileDir,
-            Plugin mapperExtGeneratorPlugin,
-            Plugin mapperExtXmlGeneratorPlugin) throws IOException, ClassNotFoundException {
+            List<Plugin> plugins) throws IOException, ClassNotFoundException, ShellException {
         mkdirs(exampleFileDir);
         mkdirs(mapperFileDir);
         mkdirs(xmlFileDir);
@@ -93,6 +94,7 @@ public final class MmeCompileUtil {
         List<org.mybatis.generator.api.dom.java.CompilationUnit> tlcList = new ArrayList<>();
         List<GeneratedXmlFile> generatedXmlFiles = new ArrayList<>();
         List<GeneratedJavaFile> generatedJavaFiles = new ArrayList<>();
+        List<GeneratedJavaFile> additionalJavaFiles = new ArrayList<>();
         List<GeneratedJavaFile> generatedMapperExtJavaFiles = new ArrayList<>();
         for (File file : javaFiles) {
             Entry<IntrospectedTable, TopLevelClass> exampleClassEntry = buildExampleClass(context, modelPackageName, mapperPackageName, file);
@@ -109,13 +111,27 @@ public final class MmeCompileUtil {
                     .collect(Collectors.toList()));
                 generatedXmlFiles.addAll(introspectedTable.getGeneratedXmlFiles());
 
-                if (mapperExtGeneratorPlugin != null) {
-                    generatedMapperExtJavaFiles.addAll(mapperExtGeneratorPlugin.contextGenerateAdditionalJavaFiles(introspectedTable));
-                }
-                if (mapperExtXmlGeneratorPlugin != null) {
-                    generatedXmlFiles.addAll(mapperExtXmlGeneratorPlugin.contextGenerateAdditionalXmlFiles(introspectedTable));
+                if (plugins != null) {
+                    for (Plugin plugin : plugins) {
+                        plugin.initialized(introspectedTable);
+                        additionalJavaFiles.addAll(plugin.contextGenerateAdditionalJavaFiles(introspectedTable));
+                        generatedXmlFiles.addAll(plugin.contextGenerateAdditionalXmlFiles(introspectedTable));
+                    }
                 }
             }
+        }
+
+        DefaultShellCallback shellCallback = new DefaultShellCallback(true);
+        for (GeneratedJavaFile gjf : additionalJavaFiles) {
+            if (!new File(gjf.getTargetProject()).exists()) {
+                new File(gjf.getTargetProject()).mkdirs();
+            }
+            File directory = shellCallback.getDirectory(gjf.getTargetProject(), gjf.getTargetPackage());
+            File targetFile = new File(directory, gjf.getFileName());
+            targetFile.getParentFile().mkdirs();
+            targetFile.delete();
+            Files.writeString(targetFile.toPath(), gjf.getFormattedContent(), 
+                    StandardCharsets.UTF_8, StandardOpenOption.CREATE);
         }
 
         for (GeneratedJavaFile generatedJavaFile : generatedJavaFiles) {

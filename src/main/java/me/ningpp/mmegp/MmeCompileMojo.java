@@ -16,8 +16,10 @@
 package me.ningpp.mmegp;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.lang3.StringUtils;
@@ -31,6 +33,10 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
+import org.dom4j.Document;
+import org.dom4j.DocumentException;
+import org.dom4j.Node;
+import org.dom4j.io.SAXReader;
 import org.mybatis.generator.api.Plugin;
 import org.mybatis.generator.config.CommentGeneratorConfiguration;
 import org.mybatis.generator.config.Context;
@@ -41,6 +47,7 @@ import org.mybatis.generator.config.PropertyRegistry;
 import org.mybatis.generator.config.SqlMapGeneratorConfiguration;
 import org.mybatis.generator.internal.NullProgressCallback;
 import org.sonatype.plexus.build.incremental.BuildContext;
+import org.xml.sax.SAXException;
 
 @Mojo(
         name = "generate",
@@ -85,12 +92,6 @@ public class MmeCompileMojo extends AbstractMojo {
     @Parameter( required = false, property = "javaClientGeneratorConfigurationType" )
     private String javaClientGeneratorConfigurationType;
 
-    @Parameter( required = false, property = "mapperExtGeneratorPluginClassName" )
-    private String mapperExtGeneratorPluginClassName;
-
-    @Parameter( required = false, property = "mapperExtXmlGeneratorPluginClassName" )
-    private String mapperExtXmlGeneratorPluginClassName;
-
     /**
      * This is the MyBatis Generator Context attribute 'TargetRuntime' 
      */
@@ -102,6 +103,12 @@ public class MmeCompileMojo extends AbstractMojo {
      */
     @Parameter( required = false, property = "mbgContextIntrospectedColumnImpl" )
     private String mbgContextIntrospectedColumnImpl;
+
+    /**
+     * This is the generator config xml file path (like mbg config file).
+     */
+    @Parameter(required = false, property = "generatorConfigFilePath")
+    private String generatorConfigFilePath;
 
     @Parameter(defaultValue = "${project}", readonly = true)
     protected MavenProject project;
@@ -158,29 +165,9 @@ public class MmeCompileMojo extends AbstractMojo {
             //为了初始化pluginAggregator
             context.generateFiles(new NullProgressCallback(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
 
-            Object[] initargs = null;
-
-            Plugin mapperExtGeneratorPlugin;
-            if (StringUtils.isNotEmpty(mapperExtXmlGeneratorPluginClassName)) {
-                mapperExtGeneratorPlugin = (Plugin) Class.forName(mapperExtGeneratorPluginClassName).getDeclaredConstructors()[0].newInstance(initargs);
-                mapperExtGeneratorPlugin.setContext(context);
-                mapperExtGeneratorPlugin.setProperties(new Properties());
-            } else {
-                mapperExtGeneratorPlugin = null;
-            }
-
-            Plugin mapperExtXmlGeneratorPlugin;
-            if (StringUtils.isNotEmpty(mapperExtXmlGeneratorPluginClassName)) {
-                mapperExtXmlGeneratorPlugin = (Plugin) Class.forName(mapperExtXmlGeneratorPluginClassName).getDeclaredConstructors()[0].newInstance(initargs);
-                mapperExtXmlGeneratorPlugin.setContext(context);
-                mapperExtXmlGeneratorPlugin.setProperties(new Properties());
-            } else {
-                mapperExtXmlGeneratorPlugin = null;
-            }
-
             MmeCompileUtil.generate(context, modelPackageName, modelFileDir, exampleFileDir, 
                     mapperPackageName, mapperFileDir, xmlFileDir, 
-                    mapperExtGeneratorPlugin, mapperExtXmlGeneratorPlugin);
+                    parsePlugins(context, generatorConfigFilePath));
         } catch (Exception e) {
             throw new MojoExecutionException("Generate MyBatis Model Example File Error!", e);
         }
@@ -191,4 +178,43 @@ public class MmeCompileMojo extends AbstractMojo {
         buildContext.refresh(outputDirectory);
     }
 
+    private List<Plugin> parsePlugins(Context context, String xmlFilePath) throws SAXException, DocumentException, 
+        IllegalArgumentException, ReflectiveOperationException, SecurityException {
+        if (StringUtils.isEmpty(xmlFilePath)) {
+            return new ArrayList<>(0);
+        }
+        File xmlFile = new File(xmlFilePath);
+        if (! xmlFile.exists()) {
+            throw new IllegalArgumentException("plugin xml file does not exist! xmlFilePath is " + xmlFilePath);
+        }
+
+        SAXReader reader = new SAXReader();
+        reader.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        Document document = reader.read(xmlFile);
+        List<Node> nodes = document.selectNodes("//generatorConfiguration/context/plugin");
+        if (nodes == null || nodes.isEmpty()) {
+            return new ArrayList<>(0);
+        }
+        List<Plugin> plugins = new ArrayList<>();
+        Object[] initargs = null;
+        for (Node node : nodes) {
+            String typeString = node.valueOf("@type");
+            if (StringUtils.isEmpty(typeString)) {
+                continue;
+            }
+            Class<?> pluginClass = Class.forName(typeString);
+            Plugin plugin = (Plugin) pluginClass.getConstructors()[0].newInstance(initargs);
+            List<Node> propertyNodes = node.selectNodes("//property");
+            Properties properties = new Properties();
+            if (propertyNodes != null) {
+                for (Node propertyNode : propertyNodes) {
+                    properties.put(propertyNode.valueOf("@name"), propertyNode.valueOf("@value"));
+                }
+            }
+            plugin.setContext(context);
+            plugin.setProperties(properties);
+            plugins.add(plugin);
+        }
+        return plugins;
+    }
 }
