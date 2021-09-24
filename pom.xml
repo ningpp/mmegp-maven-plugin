@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.github.ningpp</groupId>
     <artifactId>mmegp-maven-plugin</artifactId>
-    <version>0.0.6</version>
+    <version>0.0.7</version>
     <packaging>maven-plugin</packaging>
 
     <name>mmegp-maven-plugin</name>

@@ -129,7 +129,7 @@ public final class MyBatisGeneratorUtil {
             return null;
         }
         for (FieldDeclaration fieldDeclaration : fields) {
-            Pair<IntrospectedColumn, Boolean> pair = JavaParserUtil.buildColumn(fieldDeclaration, context);
+            Pair<IntrospectedColumn, Boolean> pair = JavaParserUtil.buildColumn(modelDeclaration, fieldDeclaration, context);
             if (pair != null) {
                 introspectedTable.addColumn(pair.getLeft());
                 if (Boolean.TRUE.equals(pair.getRight())) {

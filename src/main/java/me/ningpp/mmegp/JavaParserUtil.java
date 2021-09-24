@@ -15,6 +15,8 @@
  */
 package me.ningpp.mmegp;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -32,6 +34,7 @@ import org.mybatis.generator.config.Context;
 import org.mybatis.generator.internal.ObjectFactory;
 
 import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.BooleanLiteralExpr;
@@ -84,7 +87,7 @@ public final class JavaParserUtil {
         return null;
     }
 
-    public static Pair<IntrospectedColumn, Boolean> buildColumn(FieldDeclaration field, Context context) throws ClassNotFoundException {
+    public static Pair<IntrospectedColumn, Boolean> buildColumn(ClassOrInterfaceDeclaration modelDeclaration, FieldDeclaration field, Context context) throws ClassNotFoundException {
         Optional<AnnotationExpr> optionalColumnAnno = field.getAnnotationByClass(GeneratedColumn.class);
         if (!field.isPrivate() || !optionalColumnAnno.isPresent()) {
             return null;
@@ -127,7 +130,10 @@ public final class JavaParserUtil {
         }
         Class<?> clazz = getClassByType(field.getVariable(0).getType());
         if (clazz == null) {
-            return null;
+            throw new GenerateMyBatisExampleException("不支持的Java类型！ " + 
+                    "field = " + field.getVariable(0).getNameAsString() + 
+                    ", type = " + field.getVariable(0).getType() + 
+                    ", FullyQualifiedName = " + modelDeclaration.getFullyQualifiedName().get());
         }
         column.setIdentity(id && generatedValue);
         column.setActualColumnName(name);
@@ -150,14 +156,20 @@ public final class JavaParserUtil {
             }
         } else if ("String".equals(type.asString())) {
             return String.class;
-        } else if ("Date".equals(type.asString())) {
+        } else if ("Date".equals(type.asString()) || "java.util.Date".equals(type.asString())) {
             return Date.class;
-        } else if ("LocalTime".equals(type.asString())) {
+        } else if ("java.sql.Date".equals(type.asString())) {
+            return java.sql.Date.class;
+        } else if ("LocalTime".equals(type.asString()) || "java.time.LocalTime".equals(type.asString())) {
             return LocalTime.class;
-        } else if ("LocalDate".equals(type.asString())) {
+        } else if ("LocalDate".equals(type.asString()) || "java.time.LocalDate".equals(type.asString())) {
             return LocalDate.class;
-        } else if ("LocalDateTime".equals(type.asString())) {
+        } else if ("LocalDateTime".equals(type.asString()) || "java.time.LocalDateTime".equals(type.asString())) {
             return LocalDateTime.class;
+        } else if ("BigDecimal".equals(type.asString()) || "java.math.BigDecimal".equals(type.asString())) {
+            return BigDecimal.class;
+        } else if ("BigInteger".equals(type.asString()) || "java.math.BigInteger".equals(type.asString())) {
+            return BigInteger.class;
         } else if (type.isClassOrInterfaceType()) {
             return BOXED_TYPES.get(type.asString());
         }
