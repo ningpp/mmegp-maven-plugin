@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.github.ningpp</groupId>
     <artifactId>mmegp-maven-plugin</artifactId>
-    <version>0.0.7</version>
+    <version>0.0.8</version>
     <packaging>maven-plugin</packaging>
 
     <name>mmegp-maven-plugin</name>
@@ -80,16 +80,6 @@
             <groupId>com.github.javaparser</groupId>
             <artifactId>javaparser-symbol-solver-core</artifactId>
             <version>3.23.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.dom4j</groupId>
-            <artifactId>dom4j</artifactId>
-            <version>2.1.3</version>
-        </dependency>
-        <dependency>
-            <groupId>jaxen</groupId>
-            <artifactId>jaxen</artifactId>
-            <version>1.2.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>

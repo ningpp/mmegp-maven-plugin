@@ -16,11 +16,16 @@
 package me.ningpp.mmegp;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.plugin.AbstractMojo;
@@ -33,10 +38,6 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
-import org.dom4j.Document;
-import org.dom4j.DocumentException;
-import org.dom4j.Node;
-import org.dom4j.io.SAXReader;
 import org.mybatis.generator.api.Plugin;
 import org.mybatis.generator.config.CommentGeneratorConfiguration;
 import org.mybatis.generator.config.Context;
@@ -47,6 +48,8 @@ import org.mybatis.generator.config.PropertyRegistry;
 import org.mybatis.generator.config.SqlMapGeneratorConfiguration;
 import org.mybatis.generator.internal.NullProgressCallback;
 import org.sonatype.plexus.build.incremental.BuildContext;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 @Mojo(
@@ -178,7 +181,7 @@ public class MmeCompileMojo extends AbstractMojo {
         buildContext.refresh(outputDirectory);
     }
 
-    private List<Plugin> parsePlugins(Context context, String xmlFilePath) throws SAXException, DocumentException, 
+    private List<Plugin> parsePlugins(Context context, String xmlFilePath) throws SAXException, IOException, ParserConfigurationException, 
         IllegalArgumentException, ReflectiveOperationException, SecurityException {
         if (StringUtils.isEmpty(xmlFilePath)) {
             return new ArrayList<>(0);
@@ -187,34 +190,45 @@ public class MmeCompileMojo extends AbstractMojo {
         if (! xmlFile.exists()) {
             throw new IllegalArgumentException("plugin xml file does not exist! xmlFilePath is " + xmlFilePath);
         }
-
-        SAXReader reader = new SAXReader();
-        reader.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-        Document document = reader.read(xmlFile);
-        List<Node> nodes = document.selectNodes("//generatorConfiguration/context/plugin");
-        if (nodes == null || nodes.isEmpty()) {
-            return new ArrayList<>(0);
-        }
         List<Plugin> plugins = new ArrayList<>();
-        Object[] initargs = null;
-        for (Node node : nodes) {
-            String typeString = node.valueOf("@type");
-            if (StringUtils.isEmpty(typeString)) {
+
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        NodeList nodeList = factory.newDocumentBuilder().parse(xmlFile).getDocumentElement().getChildNodes();
+        int nodeLength = nodeList.getLength();
+        for (int i = 0; i < nodeLength; i++) {
+            Node node = nodeList.item(i);
+            if (! "context".equals(node.getNodeName())) {
                 continue;
             }
-            Class<?> pluginClass = Class.forName(typeString);
-            Plugin plugin = (Plugin) pluginClass.getConstructors()[0].newInstance(initargs);
-            List<Node> propertyNodes = node.selectNodes("//property");
-            Properties properties = new Properties();
-            if (propertyNodes != null) {
-                for (Node propertyNode : propertyNodes) {
-                    properties.put(propertyNode.valueOf("@name"), propertyNode.valueOf("@value"));
+            NodeList contextChildNodes = node.getChildNodes();
+            int contextChildNodeLength = contextChildNodes.getLength();
+            for (int j = 0; j < contextChildNodeLength; j++) {
+                Node pluginNode = contextChildNodes.item(j);
+                if ("plugin".equals(pluginNode.getNodeName())) {
+                    plugins.add(createPlugin(context, pluginNode));
                 }
             }
-            plugin.setContext(context);
-            plugin.setProperties(properties);
-            plugins.add(plugin);
         }
         return plugins;
+    }
+
+    private Plugin createPlugin(Context context, Node pluginNode) throws IllegalArgumentException, ReflectiveOperationException, SecurityException {
+        Object[] initargs = null;
+        Class<?> pluginClass = Class.forName(pluginNode.getAttributes().getNamedItem("type").getTextContent());
+        Plugin plugin = (Plugin) pluginClass.getConstructors()[0].newInstance(initargs);
+        NodeList propertyNodes = pluginNode.getChildNodes();
+        int propertyNodeLength = propertyNodes.getLength();
+        Properties properties = new Properties();
+        for (int i = 0; i < propertyNodeLength; i++) {
+            Node propertyNode = propertyNodes.item(i);
+            if ("property".equals(propertyNode.getNodeName())) {
+                properties.put(propertyNode.getAttributes().getNamedItem("name").getTextContent(), 
+                        propertyNode.getAttributes().getNamedItem("value").getTextContent());
+            }
+        }
+        plugin.setContext(context);
+        plugin.setProperties(properties);
+        return plugin;
     }
 }
