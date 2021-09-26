@@ -20,14 +20,12 @@ import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
@@ -36,8 +34,6 @@ import org.apache.ibatis.type.JdbcType;
 import org.mybatis.generator.api.FullyQualifiedTable;
 import org.mybatis.generator.api.IntrospectedColumn;
 import org.mybatis.generator.api.IntrospectedTable;
-import org.mybatis.generator.api.dom.java.TopLevelClass;
-import org.mybatis.generator.codegen.mybatis3.model.ExampleGenerator;
 import org.mybatis.generator.config.Context;
 import org.mybatis.generator.config.GeneratedKey;
 import org.mybatis.generator.config.TableConfiguration;
@@ -150,7 +146,7 @@ public final class MyBatisGeneratorUtil {
         return introspectedTable;
     }
 
-    public static Entry<IntrospectedTable, TopLevelClass> buildCompilationUnit(Context context, 
+    public static IntrospectedTable buildIntrospectedTable(Context context, 
             String modelPackageName, String mapperPackageName, CompilationUnit compilationUnit) throws ClassNotFoundException {
         Optional<TypeDeclaration<?>> ptOptional = compilationUnit.getPrimaryType();
         if (! ptOptional.isPresent()) {
@@ -168,28 +164,7 @@ public final class MyBatisGeneratorUtil {
         if (! modelDeclaration.isPublic()) {
             return null;
         }
-        IntrospectedTable introspectedTable = buildIntrospectedTable(context, modelPackageName, mapperPackageName, modelDeclaration);
-        if (introspectedTable == null) {
-            return null;
-        }
-        
-        ExampleGenerator exampleGenerator = new ExampleGenerator(null);
-        exampleGenerator.setIntrospectedTable(introspectedTable);
-        exampleGenerator.setContext(context);
-        exampleGenerator.setProgressCallback(new NullProgressCallback());
-        exampleGenerator.setWarnings(new ArrayList<>(0));
-        List<org.mybatis.generator.api.dom.java.CompilationUnit> units = exampleGenerator.getCompilationUnits();
-        if (units != null && units.size() > 0) {
-            TopLevelClass tlc = (TopLevelClass) units.get(0);
-            compilationUnit.getImports().forEach(importDeclaration -> {
-                String name = importDeclaration.getName().asString();
-                if (!EXCLUDE_IMPORTS.contains(name)) {
-                    tlc.addImportedType(name);
-                }
-            });
-            return Map.entry(introspectedTable, tlc);
-        }
-        return Map.entry(introspectedTable, null);
+        return buildIntrospectedTable(context, modelPackageName, mapperPackageName, modelDeclaration);
     }
 
 }

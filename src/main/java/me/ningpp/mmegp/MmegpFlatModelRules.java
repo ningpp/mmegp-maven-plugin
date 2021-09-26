@@ -41,7 +41,7 @@ public class MmegpFlatModelRules extends FlatModelRules {
 
     @Override
     public boolean generateExampleClass() {
-        return false;
+        return true;
     }
 
 }

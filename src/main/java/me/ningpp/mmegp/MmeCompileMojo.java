@@ -152,14 +152,22 @@ public class MmeCompileMojo extends AbstractMojo {
             context.setCommentGeneratorConfiguration(commentGeneratorConfiguration);
 
             SqlMapGeneratorConfiguration sqlMapGeneratorConfiguration = new SqlMapGeneratorConfiguration();
+            sqlMapGeneratorConfiguration.setTargetProject(outputDirectory.getAbsolutePath());
+            if (StringUtils.isEmpty(xmlOutputDirectory)) {
+                sqlMapGeneratorConfiguration.setTargetPackage(mapperPackageName);
+            } else {
+                sqlMapGeneratorConfiguration.setTargetPackage(xmlOutputDirectory);
+            }
             context.setSqlMapGeneratorConfiguration(sqlMapGeneratorConfiguration);
 
             JavaClientGeneratorConfiguration javaClientGeneratorCfg = new JavaClientGeneratorConfiguration();
+            javaClientGeneratorCfg.setTargetProject(outputDirectory.getAbsolutePath());
             javaClientGeneratorCfg.setConfigurationType(javaClientGeneratorConfigurationType);
             javaClientGeneratorCfg.setTargetPackage(mapperPackageName);
             context.setJavaClientGeneratorConfiguration(javaClientGeneratorCfg);
 
             JavaModelGeneratorConfiguration jmgConfig = new JavaModelGeneratorConfiguration();
+            jmgConfig.setTargetProject(outputDirectory.getAbsolutePath());
             jmgConfig.setTargetPackage(modelPackageName);
             jmgConfig.addProperty(PropertyRegistry.MODEL_GENERATOR_EXAMPLE_PACKAGE, modelPackageName);
             jmgConfig.addProperty(PropertyRegistry.COMMENT_GENERATOR_SUPPRESS_ALL_COMMENTS, Boolean.TRUE.toString());
@@ -223,8 +231,12 @@ public class MmeCompileMojo extends AbstractMojo {
         for (int i = 0; i < propertyNodeLength; i++) {
             Node propertyNode = propertyNodes.item(i);
             if ("property".equals(propertyNode.getNodeName())) {
-                properties.put(propertyNode.getAttributes().getNamedItem("name").getTextContent(), 
-                        propertyNode.getAttributes().getNamedItem("value").getTextContent());
+                String name = propertyNode.getAttributes().getNamedItem("name").getTextContent();
+                String prefix = "";
+                if ("targetProject".equals(name)) {
+                    prefix = project.getBasedir().getAbsolutePath();
+                }
+                properties.put(name, prefix + File.separator + propertyNode.getAttributes().getNamedItem("value").getTextContent());
             }
         }
         plugin.setContext(context);

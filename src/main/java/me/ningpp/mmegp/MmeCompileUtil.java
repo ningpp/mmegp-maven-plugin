@@ -19,20 +19,17 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.mybatis.generator.api.GeneratedFile;
 import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.GeneratedXmlFile;
 import org.mybatis.generator.api.IntrospectedTable;
 import org.mybatis.generator.api.Plugin;
-import org.mybatis.generator.api.dom.DefaultJavaFormatter;
-import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.Context;
 import org.mybatis.generator.exception.ShellException;
 import org.mybatis.generator.internal.DefaultShellCallback;
@@ -63,7 +60,7 @@ public final class MmeCompileUtil {
         }
     }
 
-    private static Entry<IntrospectedTable, TopLevelClass> buildExampleClass(Context context, 
+    private static IntrospectedTable buildIntrospectedTable(Context context, 
             String modelPackageName, String mapperPackageName, File file) throws IOException, ClassNotFoundException {
         if (!file.getName().endsWith(".java") || file.getName().endsWith("Example.java")) {
             return null;
@@ -71,7 +68,7 @@ public final class MmeCompileUtil {
         ParseResult<CompilationUnit> parseResult = JAVA_PARSER.parse(file);
         Optional<CompilationUnit> cuOptional = parseResult.getResult();
         if (parseResult.isSuccessful() && cuOptional.isPresent()) {
-            return MyBatisGeneratorUtil.buildCompilationUnit(context, modelPackageName, mapperPackageName, cuOptional.get());
+            return MyBatisGeneratorUtil.buildIntrospectedTable(context, modelPackageName, mapperPackageName, cuOptional.get());
         } else {
             System.err.println(parseResult.getProblems());
             return null;
@@ -91,83 +88,50 @@ public final class MmeCompileUtil {
         if (javaFiles == null) {
             return;
         }
-        List<org.mybatis.generator.api.dom.java.CompilationUnit> tlcList = new ArrayList<>();
         List<GeneratedXmlFile> generatedXmlFiles = new ArrayList<>();
-        List<GeneratedJavaFile> generatedJavaFiles = new ArrayList<>();
         List<GeneratedJavaFile> additionalJavaFiles = new ArrayList<>();
-        List<GeneratedJavaFile> generatedMapperExtJavaFiles = new ArrayList<>();
         for (File file : javaFiles) {
-            Entry<IntrospectedTable, TopLevelClass> exampleClassEntry = buildExampleClass(context, modelPackageName, mapperPackageName, file);
-            if (exampleClassEntry != null) {
-                if (exampleClassEntry.getValue() != null) {
-                    tlcList.add(exampleClassEntry.getValue());
-                }
-
-                IntrospectedTable introspectedTable = exampleClassEntry.getKey();
-
-                //需要过滤掉model文件
-                generatedJavaFiles.addAll(introspectedTable.getGeneratedJavaFiles().stream()
-                        .filter(gjf -> !file.getName().equals(gjf.getFileName()))
+            IntrospectedTable introspectedTable = buildIntrospectedTable(context, modelPackageName, mapperPackageName, file);
+            if (introspectedTable == null) {
+                 continue;
+            }
+            additionalJavaFiles.addAll(introspectedTable.getGeneratedJavaFiles().stream()
+                        .filter(gjf -> !gjf.getFileName().equals(file.getName()))
                     .collect(Collectors.toList()));
-                generatedXmlFiles.addAll(introspectedTable.getGeneratedXmlFiles());
 
-                if (plugins != null) {
-                    for (Plugin plugin : plugins) {
-                        plugin.initialized(introspectedTable);
-                        additionalJavaFiles.addAll(plugin.contextGenerateAdditionalJavaFiles(introspectedTable));
-                        generatedXmlFiles.addAll(plugin.contextGenerateAdditionalXmlFiles(introspectedTable));
-                    }
+            generatedXmlFiles.addAll(introspectedTable.getGeneratedXmlFiles());
+
+            if (plugins != null) {
+                for (Plugin plugin : plugins) {
+                    plugin.initialized(introspectedTable);
+                    List<GeneratedJavaFile> files = plugin.contextGenerateAdditionalJavaFiles(introspectedTable);
+                    files.forEach(f -> System.out.println("generated :   " + f.getFileName()));
+                    additionalJavaFiles.addAll(plugin.contextGenerateAdditionalJavaFiles(introspectedTable));
+                    generatedXmlFiles.addAll(plugin.contextGenerateAdditionalXmlFiles(introspectedTable));
                 }
             }
         }
 
         DefaultShellCallback shellCallback = new DefaultShellCallback(true);
         for (GeneratedJavaFile gjf : additionalJavaFiles) {
-            if (!new File(gjf.getTargetProject()).exists()) {
-                new File(gjf.getTargetProject()).mkdirs();
-            }
-            File directory = shellCallback.getDirectory(gjf.getTargetProject(), gjf.getTargetPackage());
-            File targetFile = new File(directory, gjf.getFileName());
-            targetFile.getParentFile().mkdirs();
-            targetFile.delete();
-            Files.writeString(targetFile.toPath(), gjf.getFormattedContent(), 
-                    StandardCharsets.UTF_8, StandardOpenOption.CREATE);
+            writeFile(shellCallback, gjf);
         }
 
-        for (GeneratedJavaFile generatedJavaFile : generatedJavaFiles) {
-            String file = mapperFileDir + File.separator + generatedJavaFile.getFileName();
-            new File(file).delete();
-            Files.writeString(Paths.get(file), generatedJavaFile.getFormattedContent(), 
-                    StandardCharsets.UTF_8, StandardOpenOption.CREATE);
-        }
-
-        for (GeneratedXmlFile generatedXmlFile : generatedXmlFiles) {
-            String xmlFile = xmlFileDir + File.separator + generatedXmlFile.getFileName();
-            new File(xmlFile).delete();
-            Files.writeString(Paths.get(xmlFile), generatedXmlFile.getFormattedContent(), 
-                    StandardCharsets.UTF_8, StandardOpenOption.CREATE);
-        }
-
-        for (GeneratedJavaFile generatedMapperExtJavaFile : generatedMapperExtJavaFiles) {
-            String mapperExtJavaFile = mapperFileDir + File.separator + generatedMapperExtJavaFile.getFileName();
-            new File(mapperExtJavaFile).delete();
-            Files.writeString(Paths.get(mapperExtJavaFile), generatedMapperExtJavaFile.getFormattedContent(), 
-                    StandardCharsets.UTF_8, StandardOpenOption.CREATE);
-        }
-        
-        DefaultJavaFormatter javaFormatter = new DefaultJavaFormatter();
-        for (org.mybatis.generator.api.dom.java.CompilationUnit compilationUnit : tlcList) {
-            String dir;
-            if (compilationUnit.getType().getShortName().endsWith("Example")) {
-                dir = exampleFileDir;
-            } else {
-                dir = mapperFileDir;
-            }
-            String javaFile = dir + compilationUnit.getType().getShortName() + ".java";
-            new File(javaFile).delete();
-            Files.writeString(Paths.get(javaFile), javaFormatter.getFormattedContent(compilationUnit), 
-                    StandardCharsets.UTF_8, StandardOpenOption.CREATE);
+        for (GeneratedXmlFile gxf : generatedXmlFiles) {
+            writeFile(shellCallback, gxf);
         }
     }
 
+    private static void writeFile(DefaultShellCallback shellCallback, GeneratedFile gf) throws ShellException, IOException {
+        if (!new File(gf.getTargetProject()).exists()) {
+            new File(gf.getTargetProject()).mkdirs();
+        }
+        File directory = shellCallback.getDirectory(gf.getTargetProject(), gf.getTargetPackage());
+        File targetFile = new File(directory, gf.getFileName());
+        targetFile.getParentFile().mkdirs();
+        targetFile.delete();
+        Files.writeString(targetFile.toPath(), gf.getFormattedContent(), 
+                StandardCharsets.UTF_8, StandardOpenOption.CREATE);
+        System.out.println("writed :   " + targetFile.getAbsolutePath());
+    }
 }
