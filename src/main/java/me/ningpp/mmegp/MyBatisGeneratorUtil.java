@@ -149,10 +149,14 @@ public final class MyBatisGeneratorUtil {
     public static IntrospectedTable buildIntrospectedTable(Context context, 
             String modelPackageName, String mapperPackageName, CompilationUnit compilationUnit) throws ClassNotFoundException {
         Optional<TypeDeclaration<?>> ptOptional = compilationUnit.getPrimaryType();
-        if (! ptOptional.isPresent()) {
-            return null;
+        TypeDeclaration<?> typeDeclaration;
+        if (ptOptional.isPresent()) {
+            typeDeclaration = ptOptional.get();
+        } else if (compilationUnit.getTypes().size() > 0) {
+            typeDeclaration = compilationUnit.getType(0);
+        } else {
+            typeDeclaration = null;
         }
-        TypeDeclaration<?> typeDeclaration = ptOptional.get();
         if (!(typeDeclaration instanceof ClassOrInterfaceDeclaration) 
                 || !typeDeclaration.isClassOrInterfaceDeclaration()) {
             return null;

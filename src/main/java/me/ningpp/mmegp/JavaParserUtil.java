@@ -141,7 +141,13 @@ public final class JavaParserUtil {
         column.setJavaProperty(field.getVariable(0).getNameAsString());
         column.setJdbcType(jdbcType.TYPE_CODE);
         column.setJdbcTypeName(jdbcType.name());
-        column.setFullyQualifiedJavaType(new FullyQualifiedJavaType(clazz.getName()));
+        if (clazz == byte[].class) {
+            column.setFullyQualifiedJavaType(new FullyQualifiedJavaType("byte[]"));
+        } else if (clazz == Byte[].class) {
+            column.setFullyQualifiedJavaType(new FullyQualifiedJavaType("Byte[]"));
+        } else {
+            column.setFullyQualifiedJavaType(new FullyQualifiedJavaType(clazz.getName()));
+        }
         return Pair.of(column, id);
     }
 
@@ -151,6 +157,8 @@ public final class JavaParserUtil {
         } else if (type.isArrayType()) {
             if ("byte[]".equals(type.asString())) {
                 return byte[].class;
+            } else if ("Byte[]".equals(type.asString())) {
+                return Byte[].class;
             } else {
                 return null;
             }

@@ -65,7 +65,13 @@ public final class MmeCompileUtil {
         if (!file.getName().endsWith(".java")) {
             return null;
         }
-        ParseResult<CompilationUnit> parseResult = JAVA_PARSER.parse(file);
+        return buildIntrospectedTable(context, modelPackageName, mapperPackageName, 
+                Files.readString(file.toPath(), StandardCharsets.UTF_8));
+    }
+
+    public static IntrospectedTable buildIntrospectedTable(Context context, 
+            String modelPackageName, String mapperPackageName, String fileContent) throws IOException, ClassNotFoundException {
+        ParseResult<CompilationUnit> parseResult = JAVA_PARSER.parse(fileContent);
         Optional<CompilationUnit> cuOptional = parseResult.getResult();
         if (parseResult.isSuccessful() && cuOptional.isPresent()) {
             return MyBatisGeneratorUtil.buildIntrospectedTable(context, modelPackageName, mapperPackageName, cuOptional.get());
