@@ -62,7 +62,7 @@ public final class MmeCompileUtil {
 
     private static IntrospectedTable buildIntrospectedTable(Context context, 
             String modelPackageName, String mapperPackageName, File file) throws IOException, ClassNotFoundException {
-        if (!file.getName().endsWith(".java") || file.getName().endsWith("Example.java")) {
+        if (!file.getName().endsWith(".java")) {
             return null;
         }
         ParseResult<CompilationUnit> parseResult = JAVA_PARSER.parse(file);
