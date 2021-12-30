@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.ibatis.type.JdbcType;
 import org.mybatis.generator.api.FullyQualifiedTable;
@@ -107,6 +108,9 @@ public final class MyBatisGeneratorUtil {
     private static IntrospectedTable buildIntrospectedTable(Context context, 
             String modelPackageName, String mapperPackageName, ClassOrInterfaceDeclaration modelDeclaration) throws ClassNotFoundException {
         String tableName = JavaParserUtil.getTableValue(modelDeclaration.getAnnotationByClass(Generated.class));
+        if (StringUtils.isEmpty(tableName)) {
+            return null;
+        }
         String fullName = modelDeclaration.getFullyQualifiedName().get();
         String domainObjectName = fullName.substring(fullName.lastIndexOf('.')+1, fullName.length());
         IntrospectedTable introspectedTable = ObjectFactory.createIntrospectedTableForValidation(context);
