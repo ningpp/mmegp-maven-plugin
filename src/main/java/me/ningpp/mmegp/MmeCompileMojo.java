@@ -1,5 +1,5 @@
 /*
- *    Copyright 2021 the original author or authors.
+ *    Copyright 2021-2022 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package me.ningpp.mmegp;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -184,7 +183,7 @@ public class MmeCompileMojo extends AbstractMojo {
         }
 
         projectHelper.addResource(project, outputDirectory.getAbsolutePath(), 
-                Arrays.asList("**/*.xml"), Collections.emptyList());
+                List.of("**/*.xml"), Collections.emptyList());
         project.addCompileSourceRoot(outputDirectory.getAbsolutePath());
         buildContext.refresh(outputDirectory);
     }
