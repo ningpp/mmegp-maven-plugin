@@ -112,7 +112,7 @@ public final class MmeCompileUtil {
                     plugin.initialized(introspectedTable);
                     List<GeneratedJavaFile> files = plugin.contextGenerateAdditionalJavaFiles(introspectedTable);
                     files.forEach(f -> System.out.println("generated :   " + f.getFileName()));
-                    additionalJavaFiles.addAll(plugin.contextGenerateAdditionalJavaFiles(introspectedTable));
+                    additionalJavaFiles.addAll(files);
                     generatedXmlFiles.addAll(plugin.contextGenerateAdditionalXmlFiles(introspectedTable));
                 }
             }
