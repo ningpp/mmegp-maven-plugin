@@ -95,6 +95,12 @@ public class MmeCompileMojo extends AbstractMojo {
     private String javaClientGeneratorConfigurationType;
 
     /**
+     * This is MBG CommentGeneratorConfiguration.configurationType
+     */
+    @Parameter( required = false, property = "commentGeneratorConfigurationType" )
+    private String commentGeneratorConfigurationType;
+
+    /**
      * This is the MyBatis Generator Context attribute 'TargetRuntime' 
      */
     @Parameter( required = false, property = "mbgContextTargetRuntime" )
@@ -148,6 +154,9 @@ public class MmeCompileMojo extends AbstractMojo {
             commentGeneratorConfiguration.addProperty(PropertyRegistry.COMMENT_GENERATOR_SUPPRESS_ALL_COMMENTS, Boolean.TRUE.toString());
             commentGeneratorConfiguration.addProperty(PropertyRegistry.COMMENT_GENERATOR_ADD_REMARK_COMMENTS, Boolean.FALSE.toString());
             commentGeneratorConfiguration.addProperty(PropertyRegistry.COMMENT_GENERATOR_DATE_FORMAT, "");
+            if (StringUtils.isNotEmpty(commentGeneratorConfigurationType)) {
+                commentGeneratorConfiguration.setConfigurationType(commentGeneratorConfigurationType);
+            }
             context.setCommentGeneratorConfiguration(commentGeneratorConfiguration);
 
             SqlMapGeneratorConfiguration sqlMapGeneratorConfiguration = new SqlMapGeneratorConfiguration();
