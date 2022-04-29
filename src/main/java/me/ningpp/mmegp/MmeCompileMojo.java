@@ -45,7 +45,6 @@ import org.mybatis.generator.config.JavaModelGeneratorConfiguration;
 import org.mybatis.generator.config.ModelType;
 import org.mybatis.generator.config.PropertyRegistry;
 import org.mybatis.generator.config.SqlMapGeneratorConfiguration;
-import org.mybatis.generator.internal.NullProgressCallback;
 import org.sonatype.plexus.build.incremental.BuildContext;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -182,7 +181,8 @@ public class MmeCompileMojo extends AbstractMojo {
             context.setJavaModelGeneratorConfiguration(jmgConfig);
 
             //为了初始化pluginAggregator
-            context.generateFiles(new NullProgressCallback(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+            context.generateFiles(new NullProgressCallback(), Collections.emptyList(), 
+                    Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
 
             MmeCompileUtil.generate(context, modelPackageName, modelFileDir, exampleFileDir, 
                     mapperPackageName, mapperFileDir, xmlFileDir, 

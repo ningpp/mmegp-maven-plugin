@@ -38,7 +38,6 @@ import org.mybatis.generator.api.IntrospectedTable;
 import org.mybatis.generator.config.Context;
 import org.mybatis.generator.config.GeneratedKey;
 import org.mybatis.generator.config.TableConfiguration;
-import org.mybatis.generator.internal.NullProgressCallback;
 import org.mybatis.generator.internal.ObjectFactory;
 
 import com.github.javaparser.ast.CompilationUnit;

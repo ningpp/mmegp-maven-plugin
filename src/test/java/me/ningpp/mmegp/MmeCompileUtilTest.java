@@ -17,7 +17,6 @@ import org.mybatis.generator.config.JavaModelGeneratorConfiguration;
 import org.mybatis.generator.config.ModelType;
 import org.mybatis.generator.config.PropertyRegistry;
 import org.mybatis.generator.config.SqlMapGeneratorConfiguration;
-import org.mybatis.generator.internal.NullProgressCallback;
 
 /**
  * 
@@ -104,7 +103,8 @@ public class MmeCompileUtilTest {
         context.setJavaModelGeneratorConfiguration(jmgConfig);
 
         //为了初始化pluginAggregator
-        context.generateFiles(new NullProgressCallback(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        context.generateFiles(new NullProgressCallback(), Collections.emptyList(), 
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
 
         IntrospectedTable introspectedTable = MmeCompileUtil.buildIntrospectedTable(context, 
                 modelPackageName, mapperPackageName, JAVA_SOURCE_FILE_CONTENT);

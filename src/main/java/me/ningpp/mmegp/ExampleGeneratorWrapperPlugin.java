@@ -25,7 +25,6 @@ import org.mybatis.generator.api.PluginAdapter;
 import org.mybatis.generator.api.dom.java.CompilationUnit;
 import org.mybatis.generator.codegen.mybatis3.model.ExampleGenerator;
 import org.mybatis.generator.config.PropertyRegistry;
-import org.mybatis.generator.internal.NullProgressCallback;
 
 public class ExampleGeneratorWrapperPlugin extends PluginAdapter {
 
@@ -35,14 +34,14 @@ public class ExampleGeneratorWrapperPlugin extends PluginAdapter {
     }
 
     private String getTargetProject() {
-        String targetProject = (String) getProperties().get("targetProject");
+        String targetProject = (String) properties.get("targetProject");
         return StringUtils.isEmpty(targetProject) ? "target/generated-sources/mme/java" : targetProject;
     }
 
     @Override
     public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(IntrospectedTable introspectedTable) {
         ExampleGenerator generator = new ExampleGenerator(getTargetProject());
-        generator.setContext(getContext());
+        generator.setContext(context);
         generator.setIntrospectedTable(introspectedTable);
         generator.setProgressCallback(new NullProgressCallback());
         generator.setWarnings(new ArrayList<>(1));
