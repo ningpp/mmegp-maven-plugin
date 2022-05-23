@@ -27,6 +27,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -58,6 +59,14 @@ import org.xml.sax.SAXException;
         threadSafe = true
 )
 public class MmeCompileMojo extends AbstractMojo {
+
+    private static final String XML_NAME = "name";
+    private static final String XML_VALUE = "value";
+    private static final String XML_PROPERTY = "property";
+    private static final String XML_TYPE = "type";
+    private static final String XML_PLUGIN = "plugin";
+    private static final String XML_CONTEXT = "context";
+    private static final String XML_TARGET_PROJECT = "targetProject";
 
     /**
      * This is the directory into which the {@code .java} will be created.
@@ -144,49 +153,62 @@ public class MmeCompileMojo extends AbstractMojo {
         }
 
         try {
-            Context context = new Context(ModelType.FLAT);
-            context.setTargetRuntime(mbgContextTargetRuntime);
-            context.setIntrospectedColumnImpl(mbgContextIntrospectedColumnImpl);
-            
-            CommentGeneratorConfiguration commentGeneratorConfiguration = new CommentGeneratorConfiguration();
-            commentGeneratorConfiguration.addProperty(PropertyRegistry.COMMENT_GENERATOR_SUPPRESS_DATE, Boolean.FALSE.toString());
-            commentGeneratorConfiguration.addProperty(PropertyRegistry.COMMENT_GENERATOR_SUPPRESS_ALL_COMMENTS, Boolean.TRUE.toString());
-            commentGeneratorConfiguration.addProperty(PropertyRegistry.COMMENT_GENERATOR_ADD_REMARK_COMMENTS, Boolean.FALSE.toString());
-            commentGeneratorConfiguration.addProperty(PropertyRegistry.COMMENT_GENERATOR_DATE_FORMAT, "");
-            if (StringUtils.isNotEmpty(commentGeneratorConfigurationType)) {
-                commentGeneratorConfiguration.setConfigurationType(commentGeneratorConfigurationType);
+            List<Pair<Properties, List<PluginInfo>>> pairs = parseContexts(generatorConfigFilePath);
+            for (Pair<Properties, List<PluginInfo>> pair : pairs) {
+                Context context = new Context(ModelType.FLAT);
+                context.getProperties().putAll(pair.getKey());
+                context.setTargetRuntime(mbgContextTargetRuntime);
+                context.setIntrospectedColumnImpl(mbgContextIntrospectedColumnImpl);
+
+                CommentGeneratorConfiguration commentGeneratorConfiguration = new CommentGeneratorConfiguration();
+                commentGeneratorConfiguration.addProperty(PropertyRegistry.COMMENT_GENERATOR_SUPPRESS_DATE, Boolean.FALSE.toString());
+                commentGeneratorConfiguration.addProperty(PropertyRegistry.COMMENT_GENERATOR_SUPPRESS_ALL_COMMENTS, Boolean.TRUE.toString());
+                commentGeneratorConfiguration.addProperty(PropertyRegistry.COMMENT_GENERATOR_ADD_REMARK_COMMENTS, Boolean.FALSE.toString());
+                commentGeneratorConfiguration.addProperty(PropertyRegistry.COMMENT_GENERATOR_DATE_FORMAT, "");
+                if (StringUtils.isNotEmpty(commentGeneratorConfigurationType)) {
+                    commentGeneratorConfiguration.setConfigurationType(commentGeneratorConfigurationType);
+                }
+                context.setCommentGeneratorConfiguration(commentGeneratorConfiguration);
+
+                SqlMapGeneratorConfiguration sqlMapGeneratorConfiguration = new SqlMapGeneratorConfiguration();
+                sqlMapGeneratorConfiguration.setTargetProject(outputDirectory.getAbsolutePath());
+                if (StringUtils.isEmpty(xmlOutputDirectory)) {
+                    sqlMapGeneratorConfiguration.setTargetPackage(mapperPackageName);
+                } else {
+                    sqlMapGeneratorConfiguration.setTargetPackage(xmlOutputDirectory);
+                }
+                context.setSqlMapGeneratorConfiguration(sqlMapGeneratorConfiguration);
+
+                JavaClientGeneratorConfiguration javaClientGeneratorCfg = new JavaClientGeneratorConfiguration();
+                javaClientGeneratorCfg.setTargetProject(outputDirectory.getAbsolutePath());
+                javaClientGeneratorCfg.setConfigurationType(javaClientGeneratorConfigurationType);
+                javaClientGeneratorCfg.setTargetPackage(mapperPackageName);
+                context.setJavaClientGeneratorConfiguration(javaClientGeneratorCfg);
+
+                JavaModelGeneratorConfiguration jmgConfig = new JavaModelGeneratorConfiguration();
+                jmgConfig.setTargetProject(outputDirectory.getAbsolutePath());
+                jmgConfig.setTargetPackage(modelPackageName);
+                jmgConfig.addProperty(PropertyRegistry.MODEL_GENERATOR_EXAMPLE_PACKAGE, modelPackageName);
+                jmgConfig.addProperty(PropertyRegistry.COMMENT_GENERATOR_SUPPRESS_ALL_COMMENTS, Boolean.TRUE.toString());
+                context.setJavaModelGeneratorConfiguration(jmgConfig);
+
+                //为了初始化pluginAggregator
+                context.generateFiles(new NullProgressCallback(), Collections.emptyList(), 
+                        Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+
+                List<PluginInfo> pluginInfos = pair.getRight();
+                List<Plugin> plugins = new ArrayList<>();
+                Object[] initPluginArgs = null;
+                for (PluginInfo pluginInfo : pluginInfos) {
+                    Plugin plugin = (Plugin) pluginInfo.getPluginClass().getConstructors()[0].newInstance(initPluginArgs);
+                    plugin.setContext(context);
+                    plugin.setProperties(pluginInfo.getProperties());
+                    plugins.add(plugin);
+                }
+
+                MmeCompileUtil.generate(context, modelPackageName, modelFileDir, exampleFileDir, 
+                        mapperPackageName, mapperFileDir, xmlFileDir, plugins);
             }
-            context.setCommentGeneratorConfiguration(commentGeneratorConfiguration);
-
-            SqlMapGeneratorConfiguration sqlMapGeneratorConfiguration = new SqlMapGeneratorConfiguration();
-            sqlMapGeneratorConfiguration.setTargetProject(outputDirectory.getAbsolutePath());
-            if (StringUtils.isEmpty(xmlOutputDirectory)) {
-                sqlMapGeneratorConfiguration.setTargetPackage(mapperPackageName);
-            } else {
-                sqlMapGeneratorConfiguration.setTargetPackage(xmlOutputDirectory);
-            }
-            context.setSqlMapGeneratorConfiguration(sqlMapGeneratorConfiguration);
-
-            JavaClientGeneratorConfiguration javaClientGeneratorCfg = new JavaClientGeneratorConfiguration();
-            javaClientGeneratorCfg.setTargetProject(outputDirectory.getAbsolutePath());
-            javaClientGeneratorCfg.setConfigurationType(javaClientGeneratorConfigurationType);
-            javaClientGeneratorCfg.setTargetPackage(mapperPackageName);
-            context.setJavaClientGeneratorConfiguration(javaClientGeneratorCfg);
-
-            JavaModelGeneratorConfiguration jmgConfig = new JavaModelGeneratorConfiguration();
-            jmgConfig.setTargetProject(outputDirectory.getAbsolutePath());
-            jmgConfig.setTargetPackage(modelPackageName);
-            jmgConfig.addProperty(PropertyRegistry.MODEL_GENERATOR_EXAMPLE_PACKAGE, modelPackageName);
-            jmgConfig.addProperty(PropertyRegistry.COMMENT_GENERATOR_SUPPRESS_ALL_COMMENTS, Boolean.TRUE.toString());
-            context.setJavaModelGeneratorConfiguration(jmgConfig);
-
-            //为了初始化pluginAggregator
-            context.generateFiles(new NullProgressCallback(), Collections.emptyList(), 
-                    Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
-
-            MmeCompileUtil.generate(context, modelPackageName, modelFileDir, exampleFileDir, 
-                    mapperPackageName, mapperFileDir, xmlFileDir, 
-                    parsePlugins(context, generatorConfigFilePath));
         } catch (Exception e) {
             throw new MojoExecutionException("Generate MyBatis Model Example File Error!", e);
         }
@@ -197,7 +219,7 @@ public class MmeCompileMojo extends AbstractMojo {
         buildContext.refresh(outputDirectory);
     }
 
-    private List<Plugin> parsePlugins(Context context, String xmlFilePath) throws SAXException, IOException, ParserConfigurationException, 
+    private List<Pair<Properties, List<PluginInfo>>> parseContexts(String xmlFilePath) throws SAXException, IOException, ParserConfigurationException, 
         IllegalArgumentException, ReflectiveOperationException, SecurityException {
         if (StringUtils.isEmpty(xmlFilePath)) {
             return new ArrayList<>(0);
@@ -206,49 +228,68 @@ public class MmeCompileMojo extends AbstractMojo {
         if (! xmlFile.exists()) {
             throw new IllegalArgumentException("plugin xml file does not exist! xmlFilePath is " + xmlFilePath);
         }
-        List<Plugin> plugins = new ArrayList<>();
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
         NodeList nodeList = factory.newDocumentBuilder().parse(xmlFile).getDocumentElement().getChildNodes();
         int nodeLength = nodeList.getLength();
+        List<Pair<Properties, List<PluginInfo>>> pairs = new ArrayList<>();
         for (int i = 0; i < nodeLength; i++) {
             Node node = nodeList.item(i);
-            if (! "context".equals(node.getNodeName())) {
+            if (! XML_CONTEXT.equals(node.getNodeName())) {
                 continue;
             }
+
+            Properties properties = new Properties(); 
+            List<PluginInfo> pluginInfos = new ArrayList<>();
             NodeList contextChildNodes = node.getChildNodes();
             int contextChildNodeLength = contextChildNodes.getLength();
             for (int j = 0; j < contextChildNodeLength; j++) {
-                Node pluginNode = contextChildNodes.item(j);
-                if ("plugin".equals(pluginNode.getNodeName())) {
-                    plugins.add(createPlugin(context, pluginNode));
+                Node childNode = contextChildNodes.item(j);
+                if (XML_PLUGIN.equals(childNode.getNodeName())) {
+                    pluginInfos.add(parsePlugin(childNode));
+                } else if (XML_PROPERTY.equals(childNode.getNodeName())) {
+                    properties.put(childNode.getAttributes().getNamedItem(XML_NAME).getTextContent(), 
+                            childNode.getAttributes().getNamedItem(XML_VALUE).getTextContent());
                 }
             }
+            pairs.add(Pair.of(properties, pluginInfos));
         }
-        return plugins;
+        return pairs;
     }
 
-    private Plugin createPlugin(Context context, Node pluginNode) throws IllegalArgumentException, ReflectiveOperationException, SecurityException {
-        Object[] initargs = null;
-        Class<?> pluginClass = Class.forName(pluginNode.getAttributes().getNamedItem("type").getTextContent());
-        Plugin plugin = (Plugin) pluginClass.getConstructors()[0].newInstance(initargs);
+    private static class PluginInfo {
+        private final Class<?> pluginClass;
+        private final Properties properties;
+        public PluginInfo(Class<?> pluginClass, Properties properties) {
+            super();
+            this.pluginClass = pluginClass;
+            this.properties = properties;
+        }
+        public Class<?> getPluginClass() {
+            return pluginClass;
+        }
+        public Properties getProperties() {
+            return properties;
+        }
+    }
+
+    private PluginInfo parsePlugin(Node pluginNode) throws IllegalArgumentException, ReflectiveOperationException, SecurityException {
+        Class<?> pluginClass = Class.forName(pluginNode.getAttributes().getNamedItem(XML_TYPE).getTextContent());
         NodeList propertyNodes = pluginNode.getChildNodes();
         int propertyNodeLength = propertyNodes.getLength();
         Properties properties = new Properties();
         for (int i = 0; i < propertyNodeLength; i++) {
             Node propertyNode = propertyNodes.item(i);
-            if ("property".equals(propertyNode.getNodeName())) {
-                String name = propertyNode.getAttributes().getNamedItem("name").getTextContent();
+            if (XML_PROPERTY.equals(propertyNode.getNodeName())) {
+                String name = propertyNode.getAttributes().getNamedItem(XML_NAME).getTextContent();
                 String prefix = "";
-                if ("targetProject".equals(name)) {
+                if (XML_TARGET_PROJECT.equals(name)) {
                     prefix = project.getBasedir().getAbsolutePath();
                 }
-                properties.put(name, prefix + File.separator + propertyNode.getAttributes().getNamedItem("value").getTextContent());
+                properties.put(name, prefix + File.separator + propertyNode.getAttributes().getNamedItem(XML_VALUE).getTextContent());
             }
         }
-        plugin.setContext(context);
-        plugin.setProperties(properties);
-        return plugin;
+        return new PluginInfo(pluginClass, properties);
     }
 }
