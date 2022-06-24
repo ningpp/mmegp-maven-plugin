@@ -23,7 +23,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.github.ningpp</groupId>
     <artifactId>mmegp-maven-plugin</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>mmegp-maven-plugin</name>
@@ -67,7 +67,7 @@
 
         <mavenVersion>3.6.0</mavenVersion>
         <plexusComponentVersion>2.1.1</plexusComponentVersion>
-        <plexusUtilsVersion>3.4.1</plexusUtilsVersion>
+        <plexusUtilsVersion>3.4.2</plexusUtilsVersion>
         <pluginToolsVersion>3.6.4</pluginToolsVersion>
         <javaparser.version>3.24.2</javaparser.version>
         <junit-jupiter.version>5.9.0-M1</junit-jupiter.version>
@@ -86,7 +86,7 @@
         <maven-surefire-plugin.version>3.0.0-M6</maven-surefire-plugin.version>
         <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
         <mmegp-annotations.version>0.0.3</mmegp-annotations.version>
-        <mybatis.version>3.5.9</mybatis.version>
+        <mybatis.version>3.5.10</mybatis.version>
         <mybatis-generator-core.version>1.4.1</mybatis-generator-core.version>
         <nexus-staging-maven-plugin.version>1.6.13</nexus-staging-maven-plugin.version>
         <plexus-build-api.version>0.0.7</plexus-build-api.version>
