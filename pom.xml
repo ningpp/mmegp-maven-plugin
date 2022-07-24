@@ -70,27 +70,27 @@
         <plexusUtilsVersion>3.4.2</plexusUtilsVersion>
         <pluginToolsVersion>3.6.4</pluginToolsVersion>
         <javaparser.version>3.24.2</javaparser.version>
-        <junit-jupiter.version>5.9.0-M1</junit-jupiter.version>
+        <junit-jupiter.version>5.9.0-RC1</junit-jupiter.version>
         <maven-clean-plugin.version>3.2.0</maven-clean-plugin.version>
         <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
-        <maven-deploy-plugin.version>3.0.0-M2</maven-deploy-plugin.version>
+        <maven-deploy-plugin.version>3.0.0</maven-deploy-plugin.version>
         <maven-dependency-plugin.version>3.3.0</maven-dependency-plugin.version>
-        <maven-enforcer-plugin.version>3.0.0</maven-enforcer-plugin.version>
+        <maven-enforcer-plugin.version>3.1.0</maven-enforcer-plugin.version>
         <maven-gpg-plugin.version>3.0.1</maven-gpg-plugin.version>
-        <maven-install-plugin.version>3.0.0-M1</maven-install-plugin.version>
+        <maven-install-plugin.version>3.0.0</maven-install-plugin.version>
         <maven-jar-plugin.version>3.2.2</maven-jar-plugin.version>
         <maven-javadoc-plugin.version>3.4.0</maven-javadoc-plugin.version>
         <maven-plugin-plugin.version>3.6.4</maven-plugin-plugin.version>
-        <maven-release-plugin.version>3.0.0-M5</maven-release-plugin.version>
+        <maven-release-plugin.version>3.0.0-M6</maven-release-plugin.version>
         <maven-resources-plugin.version>3.2.0</maven-resources-plugin.version>
-        <maven-surefire-plugin.version>3.0.0-M6</maven-surefire-plugin.version>
+        <maven-surefire-plugin.version>3.0.0-M7</maven-surefire-plugin.version>
         <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
         <mmegp-annotations.version>0.0.3</mmegp-annotations.version>
         <mybatis.version>3.5.10</mybatis.version>
         <mybatis-generator-core.version>1.4.1</mybatis-generator-core.version>
         <nexus-staging-maven-plugin.version>1.6.13</nexus-staging-maven-plugin.version>
         <plexus-build-api.version>0.0.7</plexus-build-api.version>
-        <versions-maven-plugin.version>2.10.0</versions-maven-plugin.version>
+        <versions-maven-plugin.version>2.11.0</versions-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
