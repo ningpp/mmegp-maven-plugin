@@ -20,8 +20,10 @@ import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -37,6 +39,7 @@ import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.expr.ArrayInitializerExpr;
 import com.github.javaparser.ast.expr.BooleanLiteralExpr;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.FieldAccessExpr;
@@ -54,6 +57,7 @@ public final class JavaParserUtil {
     }
 
     private static final Map<String, Class<?>> BOXED_TYPES = new HashMap<>();
+    public static final String COUNT_GROUP_BY_COLUMNS_NAME = "countGroupByColumns";
 
     static {
         for (Primitive pt : PrimitiveType.Primitive.values()) {
@@ -65,7 +69,7 @@ public final class JavaParserUtil {
         }
     }
 
-    public static String getTableValue(Optional<AnnotationExpr> generatedAnnotationExpr) {
+    public static GeneratedTableInfo getTableValue(Optional<AnnotationExpr> generatedAnnotationExpr) {
         if (!generatedAnnotationExpr.isPresent()) {
             return null;
         }
@@ -77,11 +81,62 @@ public final class JavaParserUtil {
         if (memberParis == null || memberParis.isEmpty()) {
             return null;
         }
+
+        String tableName = getStringValue("table", memberParis);
+        List<String> countGroupByColumns = getArrayStringValue(COUNT_GROUP_BY_COLUMNS_NAME, memberParis);
+        if (countGroupByColumns == null) {
+            String value = getStringValue(COUNT_GROUP_BY_COLUMNS_NAME, memberParis);
+            if (value != null) {
+                countGroupByColumns = List.of(value);
+            }
+        }
+        return new GeneratedTableInfo(tableName, countGroupByColumns);
+    }
+
+    private static String getStringValue(String name, NodeList<MemberValuePair> memberParis) {
+        String value = null;
         for (MemberValuePair memberValuePair : memberParis) {
-            String memberName = memberValuePair.getNameAsString();
-            Expression memberValue = memberValuePair.getValue();
-            if ("table".equals(memberName) && memberValue instanceof StringLiteralExpr ) {
-                return ((StringLiteralExpr) memberValue).asString();
+            value = getStringValue(name, memberValuePair);
+            if (value != null) {
+                break;
+            }
+        }
+        return value;
+    }
+
+    private static String getStringValue(String name, MemberValuePair memberValuePair) {
+        String memberName = memberValuePair.getNameAsString();
+        Expression memberValue = memberValuePair.getValue();
+        if (name.equals(memberName) && memberValue instanceof StringLiteralExpr ) {
+            return ((StringLiteralExpr) memberValue).asString();
+        }
+        return null;
+    }
+
+    private static List<String> getArrayStringValue(String name, NodeList<MemberValuePair> memberParis) {
+        List<String> value = null;
+        for (MemberValuePair memberValuePair : memberParis) {
+            value = getArrayStringValue(name, memberValuePair);
+            if (value != null) {
+                break;
+            }
+        }
+        return value;
+    }
+
+    private static List<String> getArrayStringValue(String name, MemberValuePair memberValuePair) {
+        String memberName = memberValuePair.getNameAsString();
+        Expression memberValue = memberValuePair.getValue();
+        if (name.equals(memberName) && memberValue instanceof ArrayInitializerExpr ) {
+            List<Expression> expressions = ((ArrayInitializerExpr) memberValue).getValues();
+            if (expressions != null) {
+                List<String> values = new ArrayList<>();
+                for (Expression expression : expressions) {
+                    if (expression instanceof StringLiteralExpr) {
+                        values.add(((StringLiteralExpr) expression).asString());
+                    }
+                }
+                return values;
             }
         }
         return null;

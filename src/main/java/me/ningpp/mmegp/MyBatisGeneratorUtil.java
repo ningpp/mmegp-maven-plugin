@@ -106,21 +106,28 @@ public final class MyBatisGeneratorUtil {
 
     private static IntrospectedTable buildIntrospectedTable(Context context, 
             String modelPackageName, String mapperPackageName, ClassOrInterfaceDeclaration modelDeclaration) throws ClassNotFoundException {
-        String tableName = JavaParserUtil.getTableValue(modelDeclaration.getAnnotationByClass(Generated.class));
-        if (StringUtils.isEmpty(tableName)) {
+        GeneratedTableInfo tableInfo = JavaParserUtil.getTableValue(modelDeclaration.getAnnotationByClass(Generated.class));
+        if (tableInfo == null || StringUtils.isEmpty(tableInfo.getName())) {
             return null;
         }
         String fullName = modelDeclaration.getFullyQualifiedName().get();
         String domainObjectName = fullName.substring(fullName.lastIndexOf('.')+1, fullName.length());
         IntrospectedTable introspectedTable = ObjectFactory.createIntrospectedTableForValidation(context);
-        FullyQualifiedTable table = new FullyQualifiedTable(null, null, tableName, domainObjectName, null, false, null, null, null, false, null, context);
+        FullyQualifiedTable table = new FullyQualifiedTable(null, null, tableInfo.getName(), domainObjectName, null, false, null, null, null, false, null, context);
         introspectedTable.setFullyQualifiedTable(table);
         
         introspectedTable.setContext(context);
         introspectedTable.setBaseRecordType(modelDeclaration.getFullyQualifiedName().get());
+
         TableConfiguration tableConfiguration = new TableConfiguration(context);
         tableConfiguration.setDomainObjectName(domainObjectName);
+        tableConfiguration.setTableName(tableInfo.getName());
+        if (tableInfo.getCountGroupByColumns() != null) {
+            tableConfiguration.addProperty(JavaParserUtil.COUNT_GROUP_BY_COLUMNS_NAME, 
+                    StringUtils.join(tableInfo.getCountGroupByColumns(), ";"));
+        }
         introspectedTable.setTableConfiguration(tableConfiguration);
+
         introspectedTable.setExampleType(modelDeclaration.getFullyQualifiedName().get() + "Example");
         introspectedTable.setMyBatis3JavaMapperType(mapperPackageName + "." + domainObjectName + "Mapper");
         List<FieldDeclaration> fields = modelDeclaration.getFields();

@@ -1,12 +1,17 @@
 package me.ningpp.mmegp;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.mybatis.generator.api.IntrospectedColumn;
 import org.mybatis.generator.api.IntrospectedTable;
@@ -31,10 +36,14 @@ public class MmeCompileUtilTest {
             + "    import me.ningpp.mmegp.annotations.GeneratedColumn;\r\n"
             + "    import org.apache.ibatis.type.JdbcType;\r\n"
             + "\r\n"
-            + "    @Generated(table = \"test_entity\")\r\n"
+            + "    @Generated(table = \"test_entity\"%s)\r\n"
             + "    public class TestEntity {\r\n"
             + "        @GeneratedColumn(name = \"ID\", jdbcType = JdbcType.VARCHAR, id = true, blob = false, generatedValue = false)\r\n"
             + "        private String id;\r\n"
+            + "        @GeneratedColumn(name = \"DIC_ID\", jdbcType = JdbcType.VARCHAR)\r\n"
+            + "        private Integer dicId;\r\n"
+            + "        @GeneratedColumn(name = \"OF_YEAR\", jdbcType = JdbcType.INTEGER)\r\n"
+            + "        private Integer ofYear;\r\n"
             + "\r\n"
             + "        @GeneratedColumn(name = \"IMAGE_DATA\", jdbcType = JdbcType.LONGVARBINARY, id = false, blob = true, generatedValue = false)\r\n"
             + "        private byte[] imageData;\r\n"
@@ -48,6 +57,22 @@ public class MmeCompileUtilTest {
             + "\r\n"
             + "        public void setId(String id) {\r\n"
             + "            this.id = id;\r\n"
+            + "        }\r\n"
+            + "\r\n"
+            + "        public String getDicId() {\r\n"
+            + "            return dicId;\r\n"
+            + "        }\r\n"
+            + "\r\n"
+            + "        public void setDicId(String dicId) {\r\n"
+            + "            this.dicId = dicId;\r\n"
+            + "        }\r\n"
+            + "\r\n"
+            + "        public Integer getOfYear() {\r\n"
+            + "            return ofYear;\r\n"
+            + "        }\r\n"
+            + "\r\n"
+            + "        public void setOfYear(Integer ofYear) {\r\n"
+            + "            this.ofYear = ofYear;\r\n"
             + "        }\r\n"
             + "\r\n"
             + "        public byte[] getImageData() {\r\n"
@@ -106,14 +131,35 @@ public class MmeCompileUtilTest {
         context.generateFiles(new NullProgressCallback(), Collections.emptyList(), 
                 Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
 
-        IntrospectedTable introspectedTable = MmeCompileUtil.buildIntrospectedTable(context, 
-                modelPackageName, mapperPackageName, JAVA_SOURCE_FILE_CONTENT);
-        assertNotNull(introspectedTable);
-        List<IntrospectedColumn> columns = introspectedTable.getAllColumns();
-        assertEquals(3, columns.size());
-        assertEquals("ID", columns.get(0).getActualColumnName());
-        assertEquals("IMAGE_DATA", columns.get(1).getActualColumnName());
-        assertEquals("IMAGE_DATA2", columns.get(2).getActualColumnName());
+        List<Pair<String, List<String>>> pairs = List.of(
+                Pair.of("", null),
+                Pair.of(", countGroupByColumns = \"OF_YEAR\"", List.of("OF_YEAR")),
+                Pair.of(", countGroupByColumns = {}", null),
+                Pair.of(", countGroupByColumns = {\"OF_YEAR\"}", List.of("OF_YEAR")),
+                Pair.of(", countGroupByColumns = {\"OF_YEAR\", \"DIC_ID\"}", List.of("OF_YEAR", "DIC_ID"))
+        );
+        for (Pair<String, List<String>> pair : pairs) {
+            IntrospectedTable introspectedTable = MmeCompileUtil.buildIntrospectedTable(context, 
+                    modelPackageName, mapperPackageName,
+                    String.format(Locale.CHINESE, JAVA_SOURCE_FILE_CONTENT, pair.getLeft()));
+            assertEquals("test_entity", introspectedTable.getFullyQualifiedTable().getIntrospectedTableName());
+            assertEquals("test_entity", introspectedTable.getTableConfiguration().getTableName());
+            List<IntrospectedColumn> columns = introspectedTable.getAllColumns();
+            assertEquals(5, columns.size());
+            assertEquals("ID", columns.get(0).getActualColumnName());
+            assertEquals("DIC_ID", columns.get(1).getActualColumnName());
+            assertEquals("OF_YEAR", columns.get(2).getActualColumnName());
+            assertEquals("IMAGE_DATA", columns.get(3).getActualColumnName());
+            assertEquals("IMAGE_DATA2", columns.get(4).getActualColumnName());
+            String[] countGroupByColumns = StringUtils
+                    .split(introspectedTable.getTableConfigurationProperty(
+                            JavaParserUtil.COUNT_GROUP_BY_COLUMNS_NAME), ";");
+            if (pair.getRight() == null) {
+                assertTrue(countGroupByColumns == null || countGroupByColumns.length == 0);
+            } else {
+                assertArrayEquals(pair.getRight().toArray(new String[] {}), countGroupByColumns);
+            }
+        }
     }
 
 }
