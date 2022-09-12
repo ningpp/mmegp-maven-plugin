@@ -21,10 +21,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.mybatis.generator.api.GeneratedFile;
 import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.GeneratedXmlFile;
@@ -96,24 +98,38 @@ public final class MmeCompileUtil {
         }
         List<GeneratedXmlFile> generatedXmlFiles = new ArrayList<>();
         List<GeneratedJavaFile> additionalJavaFiles = new ArrayList<>();
+        List<Pair<IntrospectedTable, File>> pairs = new ArrayList<>();
         for (File file : javaFiles) {
             IntrospectedTable introspectedTable = buildIntrospectedTable(context, modelPackageName, mapperPackageName, file);
             if (introspectedTable == null) {
                  continue;
             }
-            additionalJavaFiles.addAll(introspectedTable.getGeneratedJavaFiles().stream()
-                        .filter(gjf -> !gjf.getFileName().equals(file.getName()))
+            pairs.add(Pair.of(introspectedTable, file));
+            context.getIntrospectedTables().add(introspectedTable);
+        }
+
+        for (Pair<IntrospectedTable, File> pair : pairs) {
+            var introspectedTable = pair.getLeft();
+            introspectedTable.initialize();
+            //必须在initialize方法之后，否则rules不起作用
+            introspectedTable.setRules(new MmegpFlatModelRules(introspectedTable));
+            introspectedTable.calculateGenerators(Collections.emptyList(), new NullProgressCallback());
+        }
+
+        for (Pair<IntrospectedTable, File> pair : pairs) {
+            additionalJavaFiles.addAll(pair.getLeft().getGeneratedJavaFiles().stream()
+                        .filter(gjf -> !gjf.getFileName().equals(pair.getRight().getName()))
                     .collect(Collectors.toList()));
 
-            generatedXmlFiles.addAll(introspectedTable.getGeneratedXmlFiles());
+            generatedXmlFiles.addAll(pair.getLeft().getGeneratedXmlFiles());
 
             if (plugins != null) {
                 for (Plugin plugin : plugins) {
-                    plugin.initialized(introspectedTable);
-                    List<GeneratedJavaFile> files = plugin.contextGenerateAdditionalJavaFiles(introspectedTable);
+                    plugin.initialized(pair.getLeft());
+                    List<GeneratedJavaFile> files = plugin.contextGenerateAdditionalJavaFiles(pair.getLeft());
                     files.forEach(f -> System.out.println("generated :   " + f.getFileName()));
                     additionalJavaFiles.addAll(files);
-                    generatedXmlFiles.addAll(plugin.contextGenerateAdditionalXmlFiles(introspectedTable));
+                    generatedXmlFiles.addAll(plugin.contextGenerateAdditionalXmlFiles(pair.getLeft()));
                 }
             }
         }

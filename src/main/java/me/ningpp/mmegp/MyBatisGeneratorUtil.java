@@ -20,7 +20,6 @@ import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -149,10 +148,6 @@ public final class MyBatisGeneratorUtil {
         if (introspectedTable.getAllColumns().isEmpty()) {
             return null;
         }
-        introspectedTable.initialize();
-        //必须在initialize方法之后，否则rules不起作用
-        introspectedTable.setRules(new MmegpFlatModelRules(introspectedTable));
-        introspectedTable.calculateGenerators(Collections.emptyList(), new NullProgressCallback());
         return introspectedTable;
     }
 
