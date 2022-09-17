@@ -2,7 +2,6 @@ package me.ningpp.mmegp;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -34,15 +33,16 @@ public class MmeCompileUtilTest {
             + "\r\n"
             + "    import me.ningpp.mmegp.annotations.Generated;\r\n"
             + "    import me.ningpp.mmegp.annotations.GeneratedColumn;\r\n"
+            + "    import me.ningpp.mmegp.enums.AggregateFunction;\r\n"
             + "    import org.apache.ibatis.type.JdbcType;\r\n"
             + "\r\n"
             + "    @Generated(table = \"test_entity\"%s)\r\n"
             + "    public class TestEntity {\r\n"
-            + "        @GeneratedColumn(name = \"ID\", jdbcType = JdbcType.VARCHAR, id = true, blob = false, generatedValue = false)\r\n"
+            + "        @GeneratedColumn(name = \"ID\", jdbcType = JdbcType.VARCHAR, id = true, blob = false, generatedValue = false, aggregates = {})\r\n"
             + "        private String id;\r\n"
-            + "        @GeneratedColumn(name = \"DIC_ID\", jdbcType = JdbcType.VARCHAR)\r\n"
+            + "        @GeneratedColumn(name = \"DIC_ID\", jdbcType = JdbcType.VARCHAR, aggregates = AggregateFunction.MIN)\r\n"
             + "        private Integer dicId;\r\n"
-            + "        @GeneratedColumn(name = \"OF_YEAR\", jdbcType = JdbcType.INTEGER)\r\n"
+            + "        @GeneratedColumn(name = \"OF_YEAR\", jdbcType = JdbcType.INTEGER, aggregates = { AggregateFunction.MIN, AggregateFunction.MAX} )\r\n"
             + "        private Integer ofYear;\r\n"
             + "\r\n"
             + "        @GeneratedColumn(name = \"IMAGE_DATA\", jdbcType = JdbcType.LONGVARBINARY, id = false, blob = true, generatedValue = false)\r\n"
@@ -151,6 +151,10 @@ public class MmeCompileUtilTest {
             assertEquals("OF_YEAR", columns.get(2).getActualColumnName());
             assertEquals("IMAGE_DATA", columns.get(3).getActualColumnName());
             assertEquals("IMAGE_DATA2", columns.get(4).getActualColumnName());
+
+            assertEquals("MIN", columns.get(1).getProperties().get("aggregates").toString());
+            assertEquals("MIN,MAX", columns.get(2).getProperties().get("aggregates").toString());
+
             String[] countGroupByColumns = StringUtils
                     .split(introspectedTable.getTableConfigurationProperty(
                             JavaParserUtil.COUNT_GROUP_BY_COLUMNS_NAME), ";");

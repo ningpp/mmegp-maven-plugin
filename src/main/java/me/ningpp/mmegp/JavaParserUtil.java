@@ -25,7 +25,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -51,6 +53,7 @@ import com.github.javaparser.ast.type.PrimitiveType.Primitive;
 import com.github.javaparser.ast.type.Type;
 
 import me.ningpp.mmegp.annotations.GeneratedColumn;
+import me.ningpp.mmegp.enums.AggregateFunction;
 
 public final class JavaParserUtil {
     private JavaParserUtil() {
@@ -58,6 +61,7 @@ public final class JavaParserUtil {
 
     private static final Map<String, Class<?>> BOXED_TYPES = new HashMap<>();
     public static final String COUNT_GROUP_BY_COLUMNS_NAME = "countGroupByColumns";
+    public static final String AGGREGATES_NAME = "aggregates";
 
     static {
         for (Primitive pt : PrimitiveType.Primitive.values()) {
@@ -203,7 +207,43 @@ public final class JavaParserUtil {
         } else {
             column.setFullyQualifiedJavaType(new FullyQualifiedJavaType(clazz.getName()));
         }
+
+        column.getProperties().put(AGGREGATES_NAME,
+                parseAggregates(memberParis).stream()
+                .map(AggregateFunction::name)
+                .collect(Collectors.joining(",")));
+
         return Pair.of(column, id);
+    }
+
+    private static List<AggregateFunction> parseAggregates(NodeList<MemberValuePair> memberParis) {
+        List<AggregateFunction> aggregateFunctions = new ArrayList<>();
+        for (MemberValuePair memberValuePair : memberParis) {
+            String memberName = memberValuePair.getNameAsString();
+            Expression memberValue = memberValuePair.getValue();
+            if (!AGGREGATES_NAME.equals(memberName)) {
+                continue;
+            }
+            if (memberValue instanceof ArrayInitializerExpr) {
+                NodeList<Expression> expressions = ((ArrayInitializerExpr) memberValue).getValues();
+                for (Expression expression : expressions) {
+                    aggregateFunctions.add(parseAggregate(expression));
+                }
+            } else {
+                aggregateFunctions.add(parseAggregate(memberValue));
+            }
+            
+        }
+        return aggregateFunctions.stream().filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    private static AggregateFunction parseAggregate(Expression exp) {
+        String value = null;
+        if (exp instanceof FieldAccessExpr) {
+            FieldAccessExpr expr = (FieldAccessExpr) exp;
+            value = expr.getName().asString();
+        }
+        return AggregateFunction.parse(value);
     }
 
     private static Class<?> getClassByType(Type type) throws ClassNotFoundException {
