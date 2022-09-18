@@ -21,13 +21,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -60,6 +61,7 @@ import org.xml.sax.SAXException;
 )
 public class MmeCompileMojo extends AbstractMojo {
 
+    private static final String XML_ID = "id";
     private static final String XML_NAME = "name";
     private static final String XML_VALUE = "value";
     private static final String XML_PROPERTY = "property";
@@ -153,10 +155,11 @@ public class MmeCompileMojo extends AbstractMojo {
         }
 
         try {
-            List<Pair<Properties, List<PluginInfo>>> pairs = parseContexts(generatorConfigFilePath);
-            for (Pair<Properties, List<PluginInfo>> pair : pairs) {
+            List<Triple<String, Properties, List<PluginInfo>>> triples = parseContexts(generatorConfigFilePath);
+            for (Triple<String, Properties, List<PluginInfo>> triple : triples) {
                 Context context = new Context(ModelType.FLAT);
-                context.getProperties().putAll(pair.getKey());
+                context.setId(triple.getLeft());
+                context.getProperties().putAll(triple.getMiddle());
                 context.setTargetRuntime(mbgContextTargetRuntime);
                 context.setIntrospectedColumnImpl(mbgContextIntrospectedColumnImpl);
 
@@ -196,7 +199,7 @@ public class MmeCompileMojo extends AbstractMojo {
                 context.generateFiles(new NullProgressCallback(), Collections.emptyList(), 
                         Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
 
-                List<PluginInfo> pluginInfos = pair.getRight();
+                List<PluginInfo> pluginInfos = triple.getRight();
                 List<Plugin> plugins = new ArrayList<>();
                 Object[] initPluginArgs = null;
                 for (PluginInfo pluginInfo : pluginInfos) {
@@ -219,7 +222,7 @@ public class MmeCompileMojo extends AbstractMojo {
         buildContext.refresh(outputDirectory);
     }
 
-    private List<Pair<Properties, List<PluginInfo>>> parseContexts(String xmlFilePath) throws SAXException, IOException, ParserConfigurationException, 
+    private List<Triple<String, Properties, List<PluginInfo>>> parseContexts(String xmlFilePath) throws SAXException, IOException, ParserConfigurationException, 
         IllegalArgumentException, ReflectiveOperationException, SecurityException {
         if (StringUtils.isEmpty(xmlFilePath)) {
             return new ArrayList<>(0);
@@ -233,11 +236,20 @@ public class MmeCompileMojo extends AbstractMojo {
         factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
         NodeList nodeList = factory.newDocumentBuilder().parse(xmlFile).getDocumentElement().getChildNodes();
         int nodeLength = nodeList.getLength();
-        List<Pair<Properties, List<PluginInfo>>> pairs = new ArrayList<>();
+        List<Triple<String, Properties, List<PluginInfo>>> triples = new ArrayList<>();
         for (int i = 0; i < nodeLength; i++) {
             Node node = nodeList.item(i);
             if (! XML_CONTEXT.equals(node.getNodeName())) {
                 continue;
+            }
+
+            String id = null;
+            Node idNode = node.getAttributes().getNamedItem(XML_ID);
+            if (idNode != null) {
+                id = idNode.getTextContent();
+            }
+            if (StringUtils.isEmpty(id)) {
+                id = UUID.randomUUID().toString();
             }
 
             Properties properties = new Properties(); 
@@ -253,9 +265,9 @@ public class MmeCompileMojo extends AbstractMojo {
                             childNode.getAttributes().getNamedItem(XML_VALUE).getTextContent());
                 }
             }
-            pairs.add(Pair.of(properties, pluginInfos));
+            triples.add(Triple.of(id, properties, pluginInfos));
         }
-        return pairs;
+        return triples;
     }
 
     private static class PluginInfo {
