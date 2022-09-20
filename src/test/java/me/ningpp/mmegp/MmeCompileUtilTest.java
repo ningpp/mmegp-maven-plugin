@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -16,6 +17,7 @@ import org.mybatis.generator.api.IntrospectedColumn;
 import org.mybatis.generator.api.IntrospectedTable;
 import org.mybatis.generator.config.CommentGeneratorConfiguration;
 import org.mybatis.generator.config.Context;
+import org.mybatis.generator.config.GeneratedKey;
 import org.mybatis.generator.config.JavaClientGeneratorConfiguration;
 import org.mybatis.generator.config.JavaModelGeneratorConfiguration;
 import org.mybatis.generator.config.ModelType;
@@ -50,6 +52,18 @@ public class MmeCompileUtilTest {
             + "\r\n"
             + "        @GeneratedColumn(name = \"IMAGE_DATA2\", jdbcType = JdbcType.LONGVARBINARY, id = false, blob = true, generatedValue = false)\r\n"
             + "        private Byte[] imageData;\r\n"
+            + "\r\n"
+            + "        @GeneratedColumn(name = \"serial_number\", jdbcType = JdbcType.INTEGER, id = true, generatedValue = %s)\r\n"
+            + "        private Integer serialNumber;\r\n"
+            + "\r\n"
+            + "        public Integer getSerialNumber() {\r\n"
+            + "            return serialNumber;\r\n"
+            + "        }\r\n"
+            + "\r\n"
+            + "        public void setSerialNumber(Integer serialNumber) {\r\n"
+            + "            this.serialNumber = serialNumber;\r\n"
+            + "        }\r\n"
+            + "\r\n"
             + "\r\n"
             + "        public String getId() {\r\n"
             + "            return id;\r\n"
@@ -138,30 +152,46 @@ public class MmeCompileUtilTest {
                 Pair.of(", countGroupByColumns = {\"OF_YEAR\"}", List.of("OF_YEAR")),
                 Pair.of(", countGroupByColumns = {\"OF_YEAR\", \"DIC_ID\"}", List.of("OF_YEAR", "DIC_ID"))
         );
-        for (Pair<String, List<String>> pair : pairs) {
-            IntrospectedTable introspectedTable = MmeCompileUtil.buildIntrospectedTable(context, 
-                    modelPackageName, mapperPackageName,
-                    String.format(Locale.CHINESE, JAVA_SOURCE_FILE_CONTENT, pair.getLeft()));
-            assertEquals("test_entity", introspectedTable.getFullyQualifiedTable().getIntrospectedTableName());
-            assertEquals("test_entity", introspectedTable.getTableConfiguration().getTableName());
-            List<IntrospectedColumn> columns = introspectedTable.getAllColumns();
-            assertEquals(5, columns.size());
-            assertEquals("ID", columns.get(0).getActualColumnName());
-            assertEquals("DIC_ID", columns.get(1).getActualColumnName());
-            assertEquals("OF_YEAR", columns.get(2).getActualColumnName());
-            assertEquals("IMAGE_DATA", columns.get(3).getActualColumnName());
-            assertEquals("IMAGE_DATA2", columns.get(4).getActualColumnName());
+        boolean[] hasGeneratedKeys = { false, true };
+        for (boolean hasGeneratedKey : hasGeneratedKeys) {
+            for (Pair<String, List<String>> pair : pairs) {
+                IntrospectedTable introspectedTable = MmeCompileUtil.buildIntrospectedTable(context, 
+                        modelPackageName, mapperPackageName,
+                        String.format(Locale.CHINESE, 
+                                JAVA_SOURCE_FILE_CONTENT, 
+                                pair.getLeft(), String.valueOf(hasGeneratedKey)));
+                assertEquals("test_entity", introspectedTable.getFullyQualifiedTable().getIntrospectedTableName());
+                assertEquals("test_entity", introspectedTable.getTableConfiguration().getTableName());
+                List<IntrospectedColumn> columns = introspectedTable.getAllColumns();
+                assertEquals(6, columns.size());
+                assertEquals("ID", columns.get(0).getActualColumnName());
+                assertEquals("DIC_ID", columns.get(2).getActualColumnName());
+                assertEquals("OF_YEAR", columns.get(3).getActualColumnName());
+                assertEquals("IMAGE_DATA", columns.get(4).getActualColumnName());
+                assertEquals("IMAGE_DATA2", columns.get(5).getActualColumnName());
 
-            assertEquals("MIN", columns.get(1).getProperties().get("aggregates").toString());
-            assertEquals("MIN,MAX", columns.get(2).getProperties().get("aggregates").toString());
+                assertEquals("serial_number", columns.get(1).getActualColumnName());
+                assertEquals(hasGeneratedKey, columns.get(1).isIdentity());
+                assertEquals(hasGeneratedKey, columns.get(1).isAutoIncrement());
+                Optional<GeneratedKey> generatedKey = introspectedTable.getTableConfiguration().getGeneratedKey();
+                assertEquals(hasGeneratedKey, generatedKey.isPresent());
+                if (generatedKey.isPresent()) {
+                    assertEquals("serial_number", generatedKey.get().getColumn());
+                    assertTrue(generatedKey.get().isIdentity());
+                    assertTrue(generatedKey.get().isJdbcStandard());
+                }
 
-            String[] countGroupByColumns = StringUtils
-                    .split(introspectedTable.getTableConfigurationProperty(
-                            JavaParserUtil.COUNT_GROUP_BY_COLUMNS_NAME), ";");
-            if (pair.getRight() == null) {
-                assertTrue(countGroupByColumns == null || countGroupByColumns.length == 0);
-            } else {
-                assertArrayEquals(pair.getRight().toArray(new String[] {}), countGroupByColumns);
+                assertEquals("MIN", columns.get(2).getProperties().get("aggregates").toString());
+                assertEquals("MIN,MAX", columns.get(3).getProperties().get("aggregates").toString());
+
+                String[] countGroupByColumns = StringUtils
+                        .split(introspectedTable.getTableConfigurationProperty(
+                                JavaParserUtil.COUNT_GROUP_BY_COLUMNS_NAME), ";");
+                if (pair.getRight() == null) {
+                    assertTrue(countGroupByColumns == null || countGroupByColumns.length == 0);
+                } else {
+                    assertArrayEquals(pair.getRight().toArray(new String[] {}), countGroupByColumns);
+                }
             }
         }
     }
