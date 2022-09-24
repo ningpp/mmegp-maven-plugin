@@ -159,7 +159,8 @@ public class MmeCompileUtilTest {
                         modelPackageName, mapperPackageName,
                         String.format(Locale.CHINESE, 
                                 JAVA_SOURCE_FILE_CONTENT, 
-                                pair.getLeft(), String.valueOf(hasGeneratedKey)));
+                                pair.getLeft(), String.valueOf(hasGeneratedKey)),
+                        new EmptyMetaInfoHandler());
                 assertEquals("test_entity", introspectedTable.getFullyQualifiedTable().getIntrospectedTableName());
                 assertEquals("test_entity", introspectedTable.getTableConfiguration().getTableName());
                 List<IntrospectedColumn> columns = introspectedTable.getAllColumns();

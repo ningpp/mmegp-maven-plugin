@@ -63,20 +63,26 @@ public final class MmeCompileUtil {
     }
 
     private static IntrospectedTable buildIntrospectedTable(Context context, 
-            String modelPackageName, String mapperPackageName, File file) throws IOException, ClassNotFoundException {
+            String modelPackageName, String mapperPackageName, File file,
+            MetaInfoHandler metaInfoHandler) throws IOException, ClassNotFoundException {
         if (!file.getName().endsWith(".java")) {
             return null;
         }
         return buildIntrospectedTable(context, modelPackageName, mapperPackageName, 
-                Files.readString(file.toPath(), StandardCharsets.UTF_8));
+                Files.readString(file.toPath(), StandardCharsets.UTF_8), 
+                metaInfoHandler);
     }
 
     public static IntrospectedTable buildIntrospectedTable(Context context, 
-            String modelPackageName, String mapperPackageName, String fileContent) throws IOException, ClassNotFoundException {
+            String modelPackageName, String mapperPackageName, String fileContent,
+            MetaInfoHandler metaInfoHandler) throws IOException, ClassNotFoundException {
         ParseResult<CompilationUnit> parseResult = JAVA_PARSER.parse(fileContent);
         Optional<CompilationUnit> cuOptional = parseResult.getResult();
         if (parseResult.isSuccessful() && cuOptional.isPresent()) {
-            return MyBatisGeneratorUtil.buildIntrospectedTable(context, modelPackageName, mapperPackageName, cuOptional.get());
+            return MyBatisGeneratorUtil.buildIntrospectedTable(context, 
+                    modelPackageName, mapperPackageName, 
+                    cuOptional.get(),
+                    metaInfoHandler);
         } else {
             System.err.println(parseResult.getProblems());
             return null;
@@ -87,6 +93,7 @@ public final class MmeCompileUtil {
             String modelPackageName, String modelFileDir, String exampleFileDir, 
             String mapperPackageName, String mapperFileDir, 
             String xmlFileDir,
+            MetaInfoHandler metaInfoHandler,
             List<Plugin> plugins) throws IOException, ClassNotFoundException, ShellException {
         mkdirs(exampleFileDir);
         mkdirs(mapperFileDir);
@@ -100,10 +107,14 @@ public final class MmeCompileUtil {
         List<GeneratedJavaFile> additionalJavaFiles = new ArrayList<>();
         List<Pair<IntrospectedTable, File>> pairs = new ArrayList<>();
         for (File file : javaFiles) {
-            IntrospectedTable introspectedTable = buildIntrospectedTable(context, modelPackageName, mapperPackageName, file);
+            IntrospectedTable introspectedTable = buildIntrospectedTable(context, 
+                    modelPackageName, mapperPackageName, 
+                    file,
+                    metaInfoHandler);
             if (introspectedTable == null) {
                  continue;
             }
+
             pairs.add(Pair.of(introspectedTable, file));
             context.getIntrospectedTables().add(introspectedTable);
         }

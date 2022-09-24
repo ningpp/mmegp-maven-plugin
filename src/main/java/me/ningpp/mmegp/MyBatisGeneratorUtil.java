@@ -104,7 +104,8 @@ public final class MyBatisGeneratorUtil {
     }
 
     private static IntrospectedTable buildIntrospectedTable(Context context, 
-            String modelPackageName, String mapperPackageName, ClassOrInterfaceDeclaration modelDeclaration) throws ClassNotFoundException {
+            String modelPackageName, String mapperPackageName, ClassOrInterfaceDeclaration modelDeclaration,
+            MetaInfoHandler metaInfoHandler) throws ClassNotFoundException {
         GeneratedTableInfo tableInfo = JavaParserUtil.getTableValue(modelDeclaration.getAnnotationByClass(Generated.class));
         if (tableInfo == null || StringUtils.isEmpty(tableInfo.getName())) {
             return null;
@@ -148,11 +149,17 @@ public final class MyBatisGeneratorUtil {
         if (introspectedTable.getAllColumns().isEmpty()) {
             return null;
         }
+
+        if (metaInfoHandler != null) {
+            metaInfoHandler.handle(introspectedTable, modelDeclaration);
+        }
+
         return introspectedTable;
     }
 
     public static IntrospectedTable buildIntrospectedTable(Context context, 
-            String modelPackageName, String mapperPackageName, CompilationUnit compilationUnit) throws ClassNotFoundException {
+            String modelPackageName, String mapperPackageName, CompilationUnit compilationUnit,
+            MetaInfoHandler metaInfoHandler) throws ClassNotFoundException {
         Optional<TypeDeclaration<?>> ptOptional = compilationUnit.getPrimaryType();
         TypeDeclaration<?> typeDeclaration;
         if (ptOptional.isPresent()) {
@@ -173,7 +180,7 @@ public final class MyBatisGeneratorUtil {
         if (! modelDeclaration.isPublic()) {
             return null;
         }
-        return buildIntrospectedTable(context, modelPackageName, mapperPackageName, modelDeclaration);
+        return buildIntrospectedTable(context, modelPackageName, mapperPackageName, modelDeclaration, metaInfoHandler);
     }
 
 }

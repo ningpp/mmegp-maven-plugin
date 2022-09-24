@@ -47,6 +47,7 @@ import org.mybatis.generator.config.JavaModelGeneratorConfiguration;
 import org.mybatis.generator.config.ModelType;
 import org.mybatis.generator.config.PropertyRegistry;
 import org.mybatis.generator.config.SqlMapGeneratorConfiguration;
+import org.mybatis.generator.internal.ObjectFactory;
 import org.sonatype.plexus.build.incremental.BuildContext;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -128,6 +129,12 @@ public class MmeCompileMojo extends AbstractMojo {
     @Parameter(required = false, property = "generatorConfigFilePath")
     private String generatorConfigFilePath;
 
+    /**
+     * This is the MetaInfoHandler class name config.
+     */
+    @Parameter(required = false, property = "metaInfoHandlerClassName")
+    private String metaInfoHandlerClassName;
+
     @Parameter(defaultValue = "${project}", readonly = true)
     protected MavenProject project;
 
@@ -153,6 +160,8 @@ public class MmeCompileMojo extends AbstractMojo {
             xmlFileDir = outputDirectory.getAbsolutePath() + File.separator + 
                     xmlOutputDirectory + File.separator;
         }
+
+        MetaInfoHandler metaInfoHandler = createMetaInfoHandler(metaInfoHandlerClassName);
 
         try {
             List<Triple<String, Properties, List<PluginInfo>>> triples = parseContexts(generatorConfigFilePath);
@@ -210,7 +219,8 @@ public class MmeCompileMojo extends AbstractMojo {
                 }
 
                 MmeCompileUtil.generate(context, modelPackageName, modelFileDir, exampleFileDir, 
-                        mapperPackageName, mapperFileDir, xmlFileDir, plugins);
+                        mapperPackageName, mapperFileDir, xmlFileDir, 
+                        metaInfoHandler, plugins);
             }
         } catch (Exception e) {
             throw new MojoExecutionException("Generate MyBatis Model Example File Error!", e);
@@ -220,6 +230,13 @@ public class MmeCompileMojo extends AbstractMojo {
                 List.of("**/*.xml"), Collections.emptyList());
         project.addCompileSourceRoot(outputDirectory.getAbsolutePath());
         buildContext.refresh(outputDirectory);
+    }
+
+    private MetaInfoHandler createMetaInfoHandler(String metaInfoHandlerClassName) {
+        if (StringUtils.isBlank(metaInfoHandlerClassName)) {
+            return null;
+        }
+        return (MetaInfoHandler) ObjectFactory.createInternalObject(metaInfoHandlerClassName.trim().strip());
     }
 
     private List<Triple<String, Properties, List<PluginInfo>>> parseContexts(String xmlFilePath) throws SAXException, IOException, ParserConfigurationException, 
