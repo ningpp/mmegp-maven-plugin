@@ -85,7 +85,7 @@
         <maven-resources-plugin.version>3.3.0</maven-resources-plugin.version>
         <maven-surefire-plugin.version>3.0.0-M7</maven-surefire-plugin.version>
         <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
-        <mmegp-annotations.version>0.0.6</mmegp-annotations.version>
+        <mmegp-annotations.version>0.0.7</mmegp-annotations.version>
         <mybatis.version>3.5.11</mybatis.version>
         <mybatis-generator-core.version>1.4.1</mybatis-generator-core.version>
         <nexus-staging-maven-plugin.version>1.6.13</nexus-staging-maven-plugin.version>
