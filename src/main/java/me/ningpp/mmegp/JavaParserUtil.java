@@ -20,6 +20,8 @@ import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Year;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -269,6 +271,10 @@ public final class JavaParserUtil {
             return LocalDate.class;
         } else if ("LocalDateTime".equals(type.asString()) || "java.time.LocalDateTime".equals(type.asString())) {
             return LocalDateTime.class;
+        } else if ("Year".equals(type.asString()) || "java.time.Year".equals(type.asString())) {
+            return Year.class;
+        } else if ("YearMonth".equals(type.asString()) || "java.time.YearMonth".equals(type.asString())) {
+            return YearMonth.class;
         } else if ("BigDecimal".equals(type.asString()) || "java.math.BigDecimal".equals(type.asString())) {
             return BigDecimal.class;
         } else if ("BigInteger".equals(type.asString()) || "java.math.BigInteger".equals(type.asString())) {
