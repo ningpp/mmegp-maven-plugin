@@ -156,7 +156,6 @@ public class MmeCompileUtilTest {
         for (boolean hasGeneratedKey : hasGeneratedKeys) {
             for (Pair<String, List<String>> pair : pairs) {
                 IntrospectedTable introspectedTable = MmeCompileUtil.buildIntrospectedTable(context, 
-                        modelPackageName, mapperPackageName,
                         String.format(Locale.CHINESE, 
                                 JAVA_SOURCE_FILE_CONTENT, 
                                 pair.getLeft(), String.valueOf(hasGeneratedKey)),

@@ -69,6 +69,7 @@
         <plexusComponentVersion>2.1.1</plexusComponentVersion>
         <plexusUtilsVersion>3.4.2</plexusUtilsVersion>
         <pluginToolsVersion>3.6.4</pluginToolsVersion>
+        <commons-lang3.version>3.12.0</commons-lang3.version>
         <javaparser.version>3.24.7</javaparser.version>
         <junit-jupiter.version>5.9.1</junit-jupiter.version>
         <maven-clean-plugin.version>3.2.0</maven-clean-plugin.version>
@@ -106,6 +107,11 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${commons-lang3.version}</version>
+        </dependency>
         <dependency>
             <groupId>io.github.ningpp</groupId>
             <artifactId>mmegp-annotations</artifactId>

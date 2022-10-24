@@ -104,7 +104,7 @@ public final class MyBatisGeneratorUtil {
     }
 
     private static IntrospectedTable buildIntrospectedTable(Context context, 
-            String modelPackageName, String mapperPackageName, ClassOrInterfaceDeclaration modelDeclaration,
+            ClassOrInterfaceDeclaration modelDeclaration,
             MetaInfoHandler metaInfoHandler) throws ClassNotFoundException {
         GeneratedTableInfo tableInfo = JavaParserUtil.getTableValue(modelDeclaration.getAnnotationByClass(Generated.class));
         if (tableInfo == null || StringUtils.isEmpty(tableInfo.getName())) {
@@ -129,7 +129,7 @@ public final class MyBatisGeneratorUtil {
         introspectedTable.setTableConfiguration(tableConfiguration);
 
         introspectedTable.setExampleType(modelDeclaration.getFullyQualifiedName().get() + "Example");
-        introspectedTable.setMyBatis3JavaMapperType(mapperPackageName + "." + domainObjectName + "Mapper");
+        introspectedTable.setMyBatis3JavaMapperType(context.getJavaClientGeneratorConfiguration().getTargetPackage() + "." + domainObjectName + "Mapper");
         List<FieldDeclaration> fields = modelDeclaration.getFields();
         if (fields == null || fields.size() == 0) {
             return null;
@@ -158,7 +158,7 @@ public final class MyBatisGeneratorUtil {
     }
 
     public static IntrospectedTable buildIntrospectedTable(Context context, 
-            String modelPackageName, String mapperPackageName, CompilationUnit compilationUnit,
+            CompilationUnit compilationUnit,
             MetaInfoHandler metaInfoHandler) throws ClassNotFoundException {
         Optional<TypeDeclaration<?>> ptOptional = compilationUnit.getPrimaryType();
         TypeDeclaration<?> typeDeclaration;
@@ -180,7 +180,7 @@ public final class MyBatisGeneratorUtil {
         if (! modelDeclaration.isPublic()) {
             return null;
         }
-        return buildIntrospectedTable(context, modelPackageName, mapperPackageName, modelDeclaration, metaInfoHandler);
+        return buildIntrospectedTable(context, modelDeclaration, metaInfoHandler);
     }
 
 }
